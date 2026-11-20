@@ -1,6 +1,6 @@
 # liveperf
 
-Prototipo Android (sideload) para actuaciones en directo: pantalla horizontal fija, modo avión controlado por la app, y cambios de programa MIDI por USB (p. ej. M-Audio Uno → V3Sound).
+Prototipo Android (sideload) para actuaciones en directo: jerarquía **grupo → setlist → canción → instrumentos** (catálogo V3Sound Grand Piano Pro, MSB 0), modo edición y modo directo, pantalla horizontal fija, modo avión controlado por la app, y Program Change MIDI por USB (canal 1; p. ej. M-Audio Uno → V3Sound).
 
 No está en Play Store. Build debug firmado con el keystore local del SDK.
 
@@ -55,15 +55,18 @@ Comportamiento:
 
 Sin el `pm grant`, verás el aviso de permiso y el resto de la app (MIDI) sigue funcionando.
 
+## Uso
+
+- **Modo edición**: define grupos, setlists, canciones (BPM, tonalidad, notas de cambios) e instrumentos por nombre/PC del catálogo V3.
+- **Modo directo**: elige grupo → setlist → canción. Instrumentos: un toque (activo más brillante). Siguiente/atrás de canción: **doble toque** (botón grande / pequeño) para evitar fallos en escenario. Al entrar en una canción se envía el primer instrumento.
+
 ## MIDI en directo
 
 1. Conecta el **M-Audio Uno** (u otra interfaz class-compliant) al g75 con **OTG**.
 2. Abre **liveperf** (landscape, pantalla encendida).
-3. Botones:
-   - **Órgano (PC 69)** → Program Change 69, canal 1
-   - **Piano (PC 0)** → Program Change 0, canal 1
+3. En modo directo, toca un instrumento → Program Change en **canal 1**.
 
-Topología validada con V3: teclado → USB Host del V3; Uno → DIN IN del V3.
+Topología validada con V3: teclado → USB Host del V3; Uno → DIN IN del V3. Sólo se usan dispositivos MIDI `TYPE_USB` (se ignoran puertos virtuales de apps).
 
 ## Repo
 

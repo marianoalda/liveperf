@@ -11,38 +11,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-private val Navy = Color(0xFF0E1A22)
-private val Panel = Color(0xFF1B3A4B)
-private val Accent = Color(0xFFE8C547)
-private val Soft = Color(0xFFD7E6EF)
-
-@Composable
-fun LiveperfTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            background = Navy,
-            surface = Panel,
-            primary = Accent,
-            onPrimary = Navy,
-            onBackground = Soft,
-            onSurface = Soft,
-        ),
-        content = content,
-    )
-}
 
 @Composable
 fun HomeScreen(
@@ -51,8 +28,8 @@ fun HomeScreen(
     midiName: String?,
     message: String,
     buildLabel: String,
-    onOrgan: () -> Unit,
-    onPiano: () -> Unit,
+    onEdit: () -> Unit,
+    onLive: () -> Unit,
     onToggleAirplane: () -> Unit,
 ) {
     Column(
@@ -103,15 +80,15 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BigActionButton(
-                label = stringResource(R.string.btn_organ),
-                buttonModifier = Modifier.weight(1f),
-                onClick = onOrgan,
+            ModeButton(
+                label = stringResource(R.string.mode_edit),
+                modifier = Modifier.weight(1f),
+                onClick = onEdit,
             )
-            BigActionButton(
-                label = stringResource(R.string.btn_piano),
-                buttonModifier = Modifier.weight(1f),
-                onClick = onPiano,
+            ModeButton(
+                label = stringResource(R.string.mode_live),
+                modifier = Modifier.weight(1f),
+                onClick = onLive,
             )
         }
 
@@ -123,24 +100,20 @@ fun HomeScreen(
             OutlinedButton(onClick = onToggleAirplane) {
                 Text(stringResource(R.string.airplane_toggle))
             }
-            Text(
-                text = buildLabel,
-                color = Soft.copy(alpha = 0.6f),
-                fontSize = 12.sp,
-            )
+            Text(text = buildLabel, color = Soft.copy(alpha = 0.6f), fontSize = 12.sp)
         }
     }
 }
 
 @Composable
-private fun BigActionButton(
+private fun ModeButton(
     label: String,
-    buttonModifier: Modifier = Modifier,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Button(
         onClick = onClick,
-        modifier = buttonModifier.height(120.dp),
+        modifier = modifier.height(120.dp),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Panel,

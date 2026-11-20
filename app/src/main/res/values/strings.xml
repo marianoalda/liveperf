@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">liveperf</string>
     <string name="title">liveperf</string>
-    <string name="btn_organ">Órgano (PC 69)</string>
-    <string name="btn_piano">Piano (PC 0)</string>
+    <string name="mode_edit">Modo edición</string>
+    <string name="mode_live">Modo directo</string>
     <string name="airplane_on">Modo avión: ON</string>
     <string name="airplane_off">Modo avión: OFF</string>
     <string name="airplane_toggle">Cambiar modo avión</string>
