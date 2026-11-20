@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">liveperf</string>
+    <string name="title">liveperf</string>
+    <string name="btn_organ">Órgano (PC 69)</string>
+    <string name="btn_piano">Piano (PC 0)</string>
+    <string name="airplane_on">Modo avión: ON</string>
+    <string name="airplane_off">Modo avión: OFF</string>
+    <string name="airplane_toggle">Cambiar modo avión</string>
+    <string name="midi_ready">MIDI: %1$s</string>
+    <string name="midi_missing">MIDI: sin dispositivo USB</string>
+    <string name="midi_sent">Enviado PC %1$d canal 1</string>
+    <string name="midi_fail">No se pudo enviar MIDI</string>
+    <string name="airplane_fail">Sin permiso WRITE_SECURE_SETTINGS (ver README)</string>
+    <string name="build_label">Compilación %1$s</string>
+</resources>
