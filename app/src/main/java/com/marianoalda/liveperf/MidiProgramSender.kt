@@ -10,7 +10,8 @@ import android.os.Looper
 import android.util.Log
 
 /**
- * Opens a MIDI device input port (host → device) and sends Program Change.
+ * Opens a **USB** MIDI device input port (host → interface) and sends Program Change.
+ * Ignores virtual/app and Bluetooth MIDI devices.
  * Channel is 0-based (0 = MIDI channel 1).
  */
 class MidiProgramSender(context: Context) {
@@ -21,15 +22,17 @@ class MidiProgramSender(context: Context) {
     private var device: MidiDevice? = null
     private var inputPort: MidiInputPort? = null
     private var deviceName: String? = null
+    private var deviceCallback: MidiManager.DeviceCallback? = null
 
     var onStatus: ((connected: Boolean, name: String?) -> Unit)? = null
 
     fun start() {
-        refreshDevice()
-        midiManager.registerDeviceCallback(
-            object : MidiManager.DeviceCallback() {
+        if (deviceCallback == null) {
+            deviceCallback = object : MidiManager.DeviceCallback() {
                 override fun onDeviceAdded(info: MidiDeviceInfo) {
-                    if (inputPort == null) refreshDevice()
+                    if (isUsbMidiOutputTarget(info)) {
+                        refreshDevice(force = device?.info?.id != info.id)
+                    }
                 }
 
                 override fun onDeviceRemoved(info: MidiDeviceInfo) {
@@ -38,12 +41,15 @@ class MidiProgramSender(context: Context) {
                         refreshDevice()
                     }
                 }
-            },
-            mainHandler,
-        )
+            }
+            midiManager.registerDeviceCallback(deviceCallback, mainHandler)
+        }
+        refreshDevice()
     }
 
     fun stop() {
+        deviceCallback?.let { midiManager.unregisterDeviceCallback(it) }
+        deviceCallback = null
         closeDevice()
     }
 
@@ -65,22 +71,26 @@ class MidiProgramSender(context: Context) {
         }
     }
 
-    private fun refreshDevice() {
-        val candidates = midiManager.devices.filter { it.inputPortCount > 0 }
-        val info = candidates.firstOrNull { it.type == MidiDeviceInfo.TYPE_USB }
-            ?: candidates.firstOrNull()
+    private fun refreshDevice(force: Boolean = false) {
+        val info = midiManager.devices.firstOrNull { isUsbMidiOutputTarget(it) }
         if (info == null) {
             closeDevice()
             onStatus?.invoke(false, null)
             return
         }
-        if (device?.info?.id == info.id && inputPort != null) {
+        if (!force && device?.info?.id == info.id && inputPort != null) {
             onStatus?.invoke(true, deviceName)
             return
         }
         closeDevice()
         midiManager.openDevice(info, { opened ->
             if (opened == null) {
+                onStatus?.invoke(false, null)
+                return@openDevice
+            }
+            // Re-check: only keep USB targets.
+            if (!isUsbMidiOutputTarget(opened.info)) {
+                opened.close()
                 onStatus?.invoke(false, null)
                 return@openDevice
             }
@@ -92,9 +102,8 @@ class MidiProgramSender(context: Context) {
             }
             device = opened
             inputPort = port
-            deviceName = info.properties.getString(MidiDeviceInfo.PROPERTY_NAME)
-                ?: info.properties.getString(MidiDeviceInfo.PROPERTY_PRODUCT)
-                ?: "MIDI ${info.id}"
+            deviceName = displayName(opened.info)
+            Log.i(TAG, "Opened USB MIDI: $deviceName type=${opened.info.type}")
             onStatus?.invoke(true, deviceName)
         }, mainHandler)
     }
@@ -116,5 +125,23 @@ class MidiProgramSender(context: Context) {
 
     companion object {
         private const val TAG = "MidiProgramSender"
+
+        /** Device we can send TO over USB (app writes to device input port). */
+        fun isUsbMidiOutputTarget(info: MidiDeviceInfo): Boolean {
+            if (info.type != MidiDeviceInfo.TYPE_USB) return false
+            if (info.inputPortCount <= 0) return false
+            return true
+        }
+
+        fun displayName(info: MidiDeviceInfo): String {
+            val product = info.properties.getString(MidiDeviceInfo.PROPERTY_PRODUCT)
+            val name = info.properties.getString(MidiDeviceInfo.PROPERTY_NAME)
+            val manufacturer = info.properties.getString(MidiDeviceInfo.PROPERTY_MANUFACTURER)
+            return listOfNotNull(manufacturer, product ?: name)
+                .filter { it.isNotBlank() }
+                .distinct()
+                .joinToString(" ")
+                .ifBlank { "USB #${info.id}" }
+        }
     }
 }
