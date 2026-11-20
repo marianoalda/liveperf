@@ -58,7 +58,7 @@ Sin el `pm grant`, verás el aviso de permiso y el resto de la app (MIDI) sigue 
 ## Uso
 
 - **Modo edición** (padre implícito): **Grupos** → setlist (ya ligada al grupo) → canciones (ya ligadas a la setlist) → instrumentos. Al crear setlist/canción se abre el nivel inferior para completarla de una vez. **Canciones** es un atajo posterior para retocar BPM/tonalidad/instrumentos sin redefinir el árbol.
-- **Importar JSON** (desde el móvil): en edición → **Importar JSON**. Reemplaza toda la biblioteca. Los instrumentos van por **nombre** (ver `v3sound-grandpianopro.json`). Ejemplo: [`examples/library-example.json`](examples/library-example.json).
+- **Importar / exportar JSON** (filesystem del móvil): en edición → **Importar JSON** (reemplaza la biblioteca) o **Exportar JSON** (estado actual). Los instrumentos van por **nombre** (ver `v3sound-grandpianopro.json`). Ejemplo: [`examples/library-example.json`](examples/library-example.json).
 - **Modo directo**: elige grupo → setlist → canción. Instrumentos: un toque (activo más brillante). Siguiente/atrás de canción: **doble toque** (botón grande / pequeño) para evitar fallos en escenario. Al entrar en una canción se envía el primer instrumento.
 
 ### Formato JSON de importación

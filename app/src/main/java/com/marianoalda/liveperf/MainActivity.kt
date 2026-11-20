@@ -37,6 +37,12 @@ class MainActivity : ComponentActivity() {
         if (uri != null) importLibraryFromUri(uri)
     }
 
+    private val exportJsonLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri: Uri? ->
+        if (uri != null) exportLibraryToUri(uri)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         V3SoundCatalog.init(this)
@@ -90,6 +96,9 @@ class MainActivity : ComponentActivity() {
                             onSongs = { screen = AppScreen.EditSongs },
                             onImportJson = {
                                 importJsonLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                            },
+                            onExportJson = {
+                                exportJsonLauncher.launch("liveperf-library.json")
                             },
                         )
 
@@ -220,6 +229,21 @@ class MainActivity : ComponentActivity() {
             screen = AppScreen.EditHub
         } catch (e: Exception) {
             message = "Error al importar: ${e.message ?: e.javaClass.simpleName}"
+        }
+    }
+
+    private fun exportLibraryToUri(uri: Uri) {
+        try {
+            val json = store.exportHierarchy(library)
+            contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { it.write(json) }
+                ?: run {
+                    message = "No se pudo escribir el fichero"
+                    return
+                }
+            message = "Biblioteca exportada (${library.groups.size} grupos, " +
+                "${library.setlists.size} setlists, ${library.songs.size} canciones)"
+        } catch (e: Exception) {
+            message = "Error al exportar: ${e.message ?: e.javaClass.simpleName}"
         }
     }
 

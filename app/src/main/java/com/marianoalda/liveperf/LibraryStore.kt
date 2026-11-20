@@ -141,6 +141,83 @@ class LibraryStore(context: Context) {
         return LibraryImportResult(library = library, warnings = warnings)
     }
 
+    /**
+     * Hierarchical export for filesystem: instruments as V3 names (same shape as import).
+     * Pretty-printed JSON.
+     */
+    fun exportHierarchy(lib: LiveperfLibrary): String {
+        fun songObject(s: Song): JSONObject {
+            val names = JSONArray()
+            s.instruments.forEach { pc ->
+                names.put(V3SoundCatalog.find(pc)?.name ?: pc.toString())
+            }
+            return JSONObject()
+                .put("id", s.id)
+                .put("title", s.title)
+                .put("bpm", s.bpm ?: JSONObject.NULL)
+                .put("key", s.key)
+                .put("instrumentNotes", s.instrumentNotes)
+                .put("instruments", names)
+        }
+
+        val nestedSetlistIds = mutableSetOf<String>()
+        val nestedSongIds = mutableSetOf<String>()
+        val groupsArr = JSONArray()
+        lib.groups.forEach { g ->
+            val setlistsArr = JSONArray()
+            g.setlistIds.mapNotNull { lib.setlist(it) }.forEach { sl ->
+                nestedSetlistIds.add(sl.id)
+                val songsArr = JSONArray()
+                sl.songIds.mapNotNull { lib.song(it) }.forEach { song ->
+                    nestedSongIds.add(song.id)
+                    songsArr.put(songObject(song))
+                }
+                setlistsArr.put(
+                    JSONObject()
+                        .put("id", sl.id)
+                        .put("name", sl.name)
+                        .put("songs", songsArr),
+                )
+            }
+            groupsArr.put(
+                JSONObject()
+                    .put("id", g.id)
+                    .put("name", g.name)
+                    .put("setlists", setlistsArr),
+            )
+        }
+
+        val root = JSONObject().put("groups", groupsArr)
+
+        val orphanSetlists = lib.setlists.filter { it.id !in nestedSetlistIds }
+        if (orphanSetlists.isNotEmpty()) {
+            val arr = JSONArray()
+            orphanSetlists.forEach { sl ->
+                val songsArr = JSONArray()
+                sl.songIds.mapNotNull { lib.song(it) }.forEach { song ->
+                    nestedSongIds.add(song.id)
+                    songsArr.put(songObject(song))
+                }
+                arr.put(
+                    JSONObject()
+                        .put("id", sl.id)
+                        .put("name", sl.name)
+                        .put("songs", songsArr),
+                )
+            }
+            root.put("setlists", arr)
+        }
+
+        val orphanSongs = lib.songs.filter { it.id !in nestedSongIds }
+        if (orphanSongs.isNotEmpty()) {
+            val arr = JSONArray()
+            orphanSongs.forEach { arr.put(songObject(it)) }
+            root.put("songs", arr)
+        }
+
+        return root.toString(2)
+    }
+
     private fun seedLibrary(): LiveperfLibrary {
         val song = Song(
             id = UUID.randomUUID().toString(),

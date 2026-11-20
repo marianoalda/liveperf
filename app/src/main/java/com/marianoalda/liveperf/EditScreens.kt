@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,6 +32,7 @@ fun EditHubScreen(
     onGroups: () -> Unit,
     onSongs: () -> Unit,
     onImportJson: () -> Unit,
+    onExportJson: () -> Unit,
 ) {
     ScreenScaffold(title = "Modo edición", onBack = onBack, content = {
         Column(
@@ -57,6 +58,12 @@ fun EditHubScreen(
                 "Importar JSON",
                 "Reemplaza la biblioteca desde un fichero del móvil",
                 onClick = onImportJson,
+                compact = true,
+            )
+            ListRow(
+                "Exportar JSON",
+                "Guarda el estado actual (instrumentos por nombre)",
+                onClick = onExportJson,
                 compact = true,
             )
         }
@@ -434,19 +441,42 @@ fun EditSongDetailScreen(
                 }
             }
 
-            DarkField(filter, { filter = it }, "Buscar sonido V3 (nombre)")
-            val q = filter.trim().lowercase()
-            val matches = V3SoundCatalog.sounds.filter {
-                q.isEmpty() || it.name.lowercase().contains(q) || it.program.toString() == q
-            }.filter { it.program !in current.instruments }.take(40)
-            Column(modifier = Modifier.heightIn(max = 220.dp)) {
-                matches.forEach { sound ->
+            DarkField(
+                filter,
+                { filter = it },
+                "Filtrar por nombre (sin distinguir mayúsculas)",
+            )
+            val q = filter.trim()
+            val matches = remember(q, current.instruments) {
+                V3SoundCatalog.sounds.filter { sound ->
+                    sound.program !in current.instruments && (
+                        q.isEmpty() ||
+                            sound.name.contains(q, ignoreCase = true) ||
+                            sound.program.toString() == q
+                        )
+                }
+            }
+            Text(
+                if (q.isEmpty()) {
+                    "${matches.size} sonidos · desplaza la lista"
+                } else {
+                    "${matches.size} coincidencias"
+                },
+                color = Soft.copy(alpha = 0.65f),
+                fontSize = 12.sp,
+            )
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(matches, key = { it.program }) { sound ->
                     Text(
                         text = sound.name,
                         color = Soft,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp)
                             .background(PanelDim, RoundedCornerShape(6.dp))
                             .clickable { persist(current.instruments + sound.program) }
                             .padding(10.dp),
