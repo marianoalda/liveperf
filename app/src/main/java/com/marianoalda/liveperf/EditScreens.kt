@@ -27,12 +27,38 @@ import androidx.compose.ui.unit.sp
 import java.util.UUID
 
 @Composable
-fun EditHubScreen(onBack: () -> Unit, onGroups: () -> Unit, onSetlists: () -> Unit, onSongs: () -> Unit) {
+fun EditHubScreen(
+    onBack: () -> Unit,
+    onGroups: () -> Unit,
+    onSongs: () -> Unit,
+    onImportJson: () -> Unit,
+) {
     ScreenScaffold(title = "Modo edición", onBack = onBack, content = {
-        Column(modifier = Modifier.fillMaxSize().padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            ListRow("Grupos", "Nivel superior", onClick = onGroups)
-            ListRow("Setlists", "Espectáculos", onClick = onSetlists)
-            ListRow("Canciones", "BPM, tonalidad, instrumentos", onClick = onSongs)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ListRow(
+                "Grupos",
+                "Definir: grupo → setlist → canciones → instrumentos",
+                onClick = onGroups,
+                compact = true,
+            )
+            ListRow(
+                "Canciones",
+                "Atajo para retocar BPM, tonalidad o instrumentos",
+                onClick = onSongs,
+                compact = true,
+            )
+            ListRow(
+                "Importar JSON",
+                "Reemplaza la biblioteca desde un fichero del móvil",
+                onClick = onImportJson,
+                compact = true,
+            )
         }
     })
 }
@@ -60,7 +86,7 @@ fun EditGroupsScreen(
                 items(library.groups, key = { it.id }) { g ->
                     ListRow(
                         title = g.name,
-                        subtitle = "${g.setlistIds.size} setlists",
+                        subtitle = "${g.setlistIds.size} setlists · tocar para editar",
                         onClick = { onOpen(g.id) },
                         onDelete = {
                             onSave(library.copy(groups = library.groups.filterNot { it.id == g.id }))
@@ -77,11 +103,24 @@ fun EditGroupDetailScreen(
     library: LiveperfLibrary,
     groupId: String,
     onBack: () -> Unit,
+    onOpenSetlist: (String) -> Unit,
     onSave: (LiveperfLibrary) -> Unit,
 ) {
     val group = library.group(groupId) ?: return
     var name by remember(group.id) { mutableStateOf(group.name) }
-    ScreenScaffold(title = "Grupo", onBack = onBack, content = {
+    var newSetlistName by remember { mutableStateOf("") }
+
+    fun updateGroup(transform: (Group) -> Group) {
+        onSave(
+            library.copy(
+                groups = library.groups.map {
+                    if (it.id == groupId) transform(it.copy(name = name.trim().ifEmpty { it.name })) else it
+                },
+            ),
+        )
+    }
+
+    ScreenScaffold(title = group.name, onBack = onBack, content = {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,84 +128,53 @@ fun EditGroupDetailScreen(
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            DarkField(name, { name = it }, "Nombre")
-            PrimaryButton("Guardar nombre") {
-                onSave(
-                    library.copy(
-                        groups = library.groups.map {
-                            if (it.id == groupId) it.copy(name = name.trim().ifEmpty { it.name }) else it
-                        },
-                    ),
-                )
-            }
-            Text("Setlists en el grupo", color = Accent, fontWeight = FontWeight.SemiBold)
-            library.setlists.forEach { sl ->
-                val checked = group.setlistIds.contains(sl.id)
-                Text(
-                    text = (if (checked) "✓ " else "○ ") + sl.name,
-                    color = Soft,
-                    fontSize = 16.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(if (checked) Panel else PanelDim, RoundedCornerShape(8.dp))
-                        .clickable {
-                            val ids = if (checked) {
-                                group.setlistIds - sl.id
-                            } else {
-                                group.setlistIds + sl.id
-                            }
-                            onSave(
-                                library.copy(
-                                    groups = library.groups.map {
-                                        if (it.id == groupId) it.copy(name = name.trim().ifEmpty { it.name }, setlistIds = ids) else it
-                                    },
-                                ),
-                            )
-                        }
-                        .padding(12.dp),
-                )
-            }
-        }
-    })
-}
+            Text("Grupo", color = Soft.copy(alpha = 0.7f), fontSize = 13.sp)
+            DarkField(name, { name = it }, "Nombre del grupo")
+            PrimaryButton("Guardar nombre") { updateGroup { it } }
 
-@Composable
-fun EditSetlistsScreen(
-    library: LiveperfLibrary,
-    onBack: () -> Unit,
-    onOpen: (String) -> Unit,
-    onSave: (LiveperfLibrary) -> Unit,
-) {
-    var newName by remember { mutableStateOf("") }
-    ScreenScaffold(title = "Setlists", onBack = onBack, content = {
-        Column(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                DarkField(newName, { newName = it }, "Nueva setlist", modifier = Modifier.weight(1f))
-                PrimaryButton("Añadir") {
-                    val name = newName.trim()
-                    if (name.isEmpty()) return@PrimaryButton
-                    onSave(library.copy(setlists = library.setlists + Setlist(name = name)))
-                    newName = ""
-                }
+            Text("Setlists de este grupo", color = Accent, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Se crean ya asignadas a este grupo. Toca una para definir canciones.",
+                color = Soft.copy(alpha = 0.7f),
+                fontSize = 13.sp,
+            )
+            library.setlistsInGroup(groupId).forEach { sl ->
+                ListRow(
+                    title = sl.name,
+                    subtitle = "${sl.songIds.size} canciones",
+                    onClick = { onOpenSetlist(sl.id) },
+                    onDelete = {
+                        updateGroup { g -> g.copy(setlistIds = g.setlistIds.filterNot { it == sl.id }) }
+                    },
+                )
             }
-            LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
-                items(library.setlists, key = { it.id }) { s ->
-                    ListRow(
-                        title = s.name,
-                        subtitle = "${s.songIds.size} canciones",
-                        onClick = { onOpen(s.id) },
-                        onDelete = {
-                            val groups = library.groups.map { g ->
-                                g.copy(setlistIds = g.setlistIds.filterNot { it == s.id })
-                            }
-                            onSave(
-                                library.copy(
-                                    setlists = library.setlists.filterNot { it.id == s.id },
-                                    groups = groups,
-                                ),
-                            )
-                        },
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                DarkField(
+                    newSetlistName,
+                    { newSetlistName = it },
+                    "Nueva setlist en ${name.ifBlank { group.name }}",
+                    modifier = Modifier.weight(1f),
+                )
+                PrimaryButton("Crear") {
+                    val n = newSetlistName.trim()
+                    if (n.isEmpty()) return@PrimaryButton
+                    val sl = Setlist(name = n)
+                    onSave(
+                        library.copy(
+                            setlists = library.setlists + sl,
+                            groups = library.groups.map {
+                                if (it.id == groupId) {
+                                    it.copy(
+                                        name = name.trim().ifEmpty { it.name },
+                                        setlistIds = it.setlistIds + sl.id,
+                                    )
+                                } else it
+                            },
+                        ),
                     )
+                    newSetlistName = ""
+                    onOpenSetlist(sl.id)
                 }
             }
         }
@@ -177,12 +185,31 @@ fun EditSetlistsScreen(
 fun EditSetlistDetailScreen(
     library: LiveperfLibrary,
     setlistId: String,
+    parentGroupId: String,
     onBack: () -> Unit,
+    onOpenSong: (String) -> Unit,
     onSave: (LiveperfLibrary) -> Unit,
 ) {
     val setlist = library.setlist(setlistId) ?: return
+    val group = library.group(parentGroupId)
     var name by remember(setlist.id) { mutableStateOf(setlist.name) }
-    ScreenScaffold(title = "Setlist", onBack = onBack, content = {
+    var newSongTitle by remember { mutableStateOf("") }
+
+    fun updateSetlist(songIds: List<String> = setlist.songIds) {
+        onSave(
+            library.copy(
+                setlists = library.setlists.map {
+                    if (it.id == setlistId) {
+                        it.copy(name = name.trim().ifEmpty { it.name }, songIds = songIds)
+                    } else it
+                },
+            ),
+        )
+    }
+
+    val crumb = library.breadcrumb(groupId = parentGroupId, setlistId = setlistId)
+
+    ScreenScaffold(title = setlist.name, onBack = onBack, content = {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -190,76 +217,99 @@ fun EditSetlistDetailScreen(
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            DarkField(name, { name = it }, "Nombre")
-            PrimaryButton("Guardar nombre") {
-                onSave(
-                    library.copy(
-                        setlists = library.setlists.map {
-                            if (it.id == setlistId) it.copy(name = name.trim().ifEmpty { it.name }) else it
-                        },
-                    ),
+            Text(crumb, color = Soft.copy(alpha = 0.75f), fontSize = 13.sp)
+            if (group != null) {
+                Text(
+                    "Padre: grupo «${group.name}» (asignado al crear / abrir desde el grupo)",
+                    color = Soft.copy(alpha = 0.65f),
+                    fontSize = 12.sp,
                 )
             }
-            Text("Canciones (orden = toques)", color = Accent, fontWeight = FontWeight.SemiBold)
-            Text("Pulsa para añadir/quitar. Mantén el orden con ↑ ↓.", color = Soft.copy(alpha = 0.7f), fontSize = 13.sp)
-            setlist.songIds.mapNotNull { id -> library.song(id)?.let { id to it } }.forEachIndexed { index, (id, song) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Panel, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        "${index + 1}. ${song.title}",
-                        color = Soft,
-                        modifier = Modifier.weight(1f),
-                        fontSize = 16.sp,
-                    )
-                    PrimaryButton("↑") {
-                        if (index == 0) return@PrimaryButton
-                        val ids = setlist.songIds.toMutableList()
-                        val tmp = ids[index - 1]
-                        ids[index - 1] = ids[index]
-                        ids[index] = tmp
-                        onSave(library.copy(setlists = library.setlists.map {
-                            if (it.id == setlistId) it.copy(name = name.trim().ifEmpty { it.name }, songIds = ids) else it
-                        }))
-                    }
-                    PrimaryButton("↓") {
-                        if (index >= setlist.songIds.lastIndex) return@PrimaryButton
-                        val ids = setlist.songIds.toMutableList()
-                        val tmp = ids[index + 1]
-                        ids[index + 1] = ids[index]
-                        ids[index] = tmp
-                        onSave(library.copy(setlists = library.setlists.map {
-                            if (it.id == setlistId) it.copy(name = name.trim().ifEmpty { it.name }, songIds = ids) else it
-                        }))
-                    }
-                    PrimaryButton("Quitar") {
-                        onSave(library.copy(setlists = library.setlists.map {
-                            if (it.id == setlistId) {
-                                it.copy(
-                                    name = name.trim().ifEmpty { it.name },
-                                    songIds = it.songIds.filterNot { sid -> sid == id },
-                                )
-                            } else it
-                        }))
+            DarkField(name, { name = it }, "Nombre de la setlist")
+            PrimaryButton("Guardar nombre") { updateSetlist() }
+
+            Text("Canciones (orden = directo)", color = Accent, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Al crear una canción se abre para completar BPM, tonalidad e instrumentos.",
+                color = Soft.copy(alpha = 0.7f),
+                fontSize = 13.sp,
+            )
+            setlist.songIds.mapNotNull { id -> library.song(id)?.let { id to it } }
+                .forEachIndexed { index, (id, song) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Panel, RoundedCornerShape(8.dp))
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onOpenSong(id) },
+                        ) {
+                            Text("${index + 1}. ${song.title}", color = Soft, fontSize = 16.sp)
+                            Text(
+                                buildString {
+                                    song.bpm?.let { append("${it} BPM · ") }
+                                    if (song.key.isNotBlank()) append(song.key)
+                                    if (song.instruments.isNotEmpty()) {
+                                        append(" · ${song.instruments.size} instr.")
+                                    }
+                                }.ifBlank { "tocar para completar" },
+                                color = Soft.copy(alpha = 0.65f),
+                                fontSize = 12.sp,
+                            )
+                        }
+                        PrimaryButton("↑") {
+                            if (index == 0) return@PrimaryButton
+                            val ids = setlist.songIds.toMutableList()
+                            val tmp = ids[index - 1]
+                            ids[index - 1] = ids[index]
+                            ids[index] = tmp
+                            updateSetlist(ids)
+                        }
+                        PrimaryButton("↓") {
+                            if (index >= setlist.songIds.lastIndex) return@PrimaryButton
+                            val ids = setlist.songIds.toMutableList()
+                            val tmp = ids[index + 1]
+                            ids[index + 1] = ids[index]
+                            ids[index] = tmp
+                            updateSetlist(ids)
+                        }
+                        PrimaryButton("Quitar") {
+                            updateSetlist(setlist.songIds.filterNot { it == id })
+                        }
                     }
                 }
-            }
-            Text("Añadir canción", color = Accent, fontWeight = FontWeight.SemiBold)
-            library.songs.filter { it.id !in setlist.songIds }.forEach { song ->
-                ListRow(song.title, onClick = {
-                    onSave(library.copy(setlists = library.setlists.map {
-                        if (it.id == setlistId) {
-                            it.copy(
-                                name = name.trim().ifEmpty { it.name },
-                                songIds = it.songIds + song.id,
-                            )
-                        } else it
-                    }))
-                })
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                DarkField(
+                    newSongTitle,
+                    { newSongTitle = it },
+                    "Nueva canción en ${name.ifBlank { setlist.name }}",
+                    modifier = Modifier.weight(1f),
+                )
+                PrimaryButton("Crear") {
+                    val title = newSongTitle.trim()
+                    if (title.isEmpty()) return@PrimaryButton
+                    val song = Song(id = UUID.randomUUID().toString(), title = title)
+                    onSave(
+                        library.copy(
+                            songs = library.songs + song,
+                            setlists = library.setlists.map {
+                                if (it.id == setlistId) {
+                                    it.copy(
+                                        name = name.trim().ifEmpty { it.name },
+                                        songIds = it.songIds + song.id,
+                                    )
+                                } else it
+                            },
+                        ),
+                    )
+                    newSongTitle = ""
+                    onOpenSong(song.id)
+                }
             }
         }
     })
@@ -272,30 +322,28 @@ fun EditSongsScreen(
     onOpen: (String) -> Unit,
     onSave: (LiveperfLibrary) -> Unit,
 ) {
-    var newTitle by remember { mutableStateOf("") }
     ScreenScaffold(title = "Canciones", onBack = onBack, content = {
         Column(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                DarkField(newTitle, { newTitle = it }, "Nueva canción", modifier = Modifier.weight(1f))
-                PrimaryButton("Añadir") {
-                    val title = newTitle.trim()
-                    if (title.isEmpty()) return@PrimaryButton
-                    onSave(
-                        library.copy(
-                            songs = library.songs + Song(id = UUID.randomUUID().toString(), title = title),
-                        ),
-                    )
-                    newTitle = ""
-                }
-            }
-            LazyColumn(modifier = Modifier.padding(top = 12.dp)) {
+            Text(
+                "Atajo para retocar. Las canciones nuevas se crean dentro de una setlist (desde el grupo).",
+                color = Soft.copy(alpha = 0.75f),
+                fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            LazyColumn {
                 items(library.songs, key = { it.id }) { s ->
+                    val parents = library.setlistsContainingSong(s.id)
+                    val path = when {
+                        parents.isEmpty() -> "Sin setlist"
+                        parents.size == 1 -> library.breadcrumb(setlistId = parents.first().id, songId = s.id)
+                        else -> parents.joinToString(", ") { it.name }
+                    }
                     ListRow(
                         title = s.title,
                         subtitle = buildString {
-                            s.bpm?.let { append("${it} BPM · ") }
-                            if (s.key.isNotBlank()) append(s.key)
-                            if (s.instruments.isNotEmpty()) append(" · ${s.instruments.size} instr.")
+                            append(path)
+                            s.bpm?.let { append(" · ${it} BPM") }
+                            if (s.key.isNotBlank()) append(" · ${s.key}")
                         },
                         onClick = { onOpen(s.id) },
                         onDelete = {
@@ -320,6 +368,8 @@ fun EditSongsScreen(
 fun EditSongDetailScreen(
     library: LiveperfLibrary,
     songId: String,
+    parentSetlistId: String?,
+    parentGroupId: String?,
     onBack: () -> Unit,
     onSave: (LiveperfLibrary) -> Unit,
 ) {
@@ -330,7 +380,7 @@ fun EditSongDetailScreen(
     var notes by remember(song.id) { mutableStateOf(song.instrumentNotes) }
     var filter by remember { mutableStateOf("") }
 
-    fun persist(instruments: List<Int> = song.instruments) {
+    fun persist(instruments: List<Int> = library.song(songId)?.instruments ?: song.instruments) {
         onSave(
             library.copy(
                 songs = library.songs.map {
@@ -347,8 +397,13 @@ fun EditSongDetailScreen(
     }
 
     val current = library.song(songId) ?: song
+    val crumb = library.breadcrumb(
+        groupId = parentGroupId,
+        setlistId = parentSetlistId,
+        songId = songId,
+    ).ifBlank { song.title }
 
-    ScreenScaffold(title = "Canción", onBack = onBack, content = {
+    ScreenScaffold(title = song.title, onBack = onBack, content = {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -356,6 +411,7 @@ fun EditSongDetailScreen(
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Text(crumb, color = Soft.copy(alpha = 0.75f), fontSize = 13.sp)
             DarkField(title, { title = it }, "Título")
             DarkField(bpmText, { bpmText = it.filter { ch -> ch.isDigit() } }, "BPM")
             DarkField(key, { key = it }, "Tonalidad")
@@ -378,7 +434,7 @@ fun EditSongDetailScreen(
                 }
             }
 
-            DarkField(filter, { filter = it }, "Buscar sonido V3")
+            DarkField(filter, { filter = it }, "Buscar sonido V3 (nombre)")
             val q = filter.trim().lowercase()
             val matches = V3SoundCatalog.sounds.filter {
                 q.isEmpty() || it.name.lowercase().contains(q) || it.program.toString() == q
@@ -386,7 +442,7 @@ fun EditSongDetailScreen(
             Column(modifier = Modifier.heightIn(max = 220.dp)) {
                 matches.forEach { sound ->
                     Text(
-                        text = "${sound.program} · ${sound.name}",
+                        text = sound.name,
                         color = Soft,
                         modifier = Modifier
                             .fillMaxWidth()

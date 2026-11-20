@@ -1,11 +1,13 @@
 package com.marianoalda.liveperf
 
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
@@ -29,8 +31,15 @@ class MainActivity : ComponentActivity() {
     private var library by mutableStateOf(LiveperfLibrary())
     private var screen by mutableStateOf<AppScreen>(AppScreen.Home)
 
+    private val importJsonLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) importLibraryFromUri(uri)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        V3SoundCatalog.init(this)
         airplane = AirplaneController(this)
         midi = MidiProgramSender(this)
         store = LibraryStore(this)
@@ -78,8 +87,10 @@ class MainActivity : ComponentActivity() {
                         AppScreen.EditHub -> EditHubScreen(
                             onBack = { screen = AppScreen.Home },
                             onGroups = { screen = AppScreen.EditGroups },
-                            onSetlists = { screen = AppScreen.EditSetlists },
                             onSongs = { screen = AppScreen.EditSongs },
+                            onImportJson = {
+                                importJsonLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                            },
                         )
 
                         AppScreen.EditGroups -> EditGroupsScreen(
@@ -93,34 +104,67 @@ class MainActivity : ComponentActivity() {
                             library = library,
                             groupId = s.groupId,
                             onBack = { screen = AppScreen.EditGroups },
-                            onSave = ::persist,
-                        )
-
-                        AppScreen.EditSetlists -> EditSetlistsScreen(
-                            library = library,
-                            onBack = { screen = AppScreen.EditHub },
-                            onOpen = { screen = AppScreen.EditSetlistDetail(it) },
+                            onOpenSetlist = { setlistId ->
+                                screen = AppScreen.EditSetlistDetail(
+                                    setlistId = setlistId,
+                                    parentGroupId = s.groupId,
+                                )
+                            },
                             onSave = ::persist,
                         )
 
                         is AppScreen.EditSetlistDetail -> EditSetlistDetailScreen(
                             library = library,
                             setlistId = s.setlistId,
-                            onBack = { screen = AppScreen.EditSetlists },
+                            parentGroupId = s.parentGroupId,
+                            onBack = { screen = AppScreen.EditGroupDetail(s.parentGroupId) },
+                            onOpenSong = { songId ->
+                                screen = AppScreen.EditSongDetail(
+                                    songId = songId,
+                                    parentSetlistId = s.setlistId,
+                                    parentGroupId = s.parentGroupId,
+                                )
+                            },
                             onSave = ::persist,
                         )
 
                         AppScreen.EditSongs -> EditSongsScreen(
                             library = library,
                             onBack = { screen = AppScreen.EditHub },
-                            onOpen = { screen = AppScreen.EditSongDetail(it) },
+                            onOpen = { songId ->
+                                val (groupId, setlistId) = library.songParentContext(songId)
+                                screen = AppScreen.EditSongDetail(
+                                    songId = songId,
+                                    parentSetlistId = setlistId,
+                                    parentGroupId = groupId,
+                                )
+                            },
                             onSave = ::persist,
                         )
 
                         is AppScreen.EditSongDetail -> EditSongDetailScreen(
                             library = library,
                             songId = s.songId,
-                            onBack = { screen = AppScreen.EditSongs },
+                            parentSetlistId = s.parentSetlistId,
+                            parentGroupId = s.parentGroupId,
+                            onBack = {
+                                val setlistId = s.parentSetlistId
+                                val groupId = s.parentGroupId
+                                screen = when {
+                                    setlistId != null && groupId != null ->
+                                        AppScreen.EditSetlistDetail(setlistId, groupId)
+                                    setlistId != null -> {
+                                        val inferred = library.groupsContainingSetlist(setlistId)
+                                            .singleOrNull()?.id
+                                        if (inferred != null) {
+                                            AppScreen.EditSetlistDetail(setlistId, inferred)
+                                        } else {
+                                            AppScreen.EditSongs
+                                        }
+                                    }
+                                    else -> AppScreen.EditSongs
+                                }
+                            },
                             onSave = ::persist,
                         )
 
@@ -157,6 +201,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun importLibraryFromUri(uri: Uri) {
+        try {
+            val text = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                ?: run {
+                    message = "No se pudo leer el fichero"
+                    return
+                }
+            val result = store.importHierarchy(text)
+            persist(result.library)
+            message = if (result.warnings.isEmpty()) {
+                "Biblioteca importada (${result.library.groups.size} grupos, " +
+                    "${result.library.setlists.size} setlists, ${result.library.songs.size} canciones)"
+            } else {
+                "Importada con avisos: ${result.warnings.take(3).joinToString("; ")}" +
+                    if (result.warnings.size > 3) "…" else ""
+            }
+            screen = AppScreen.EditHub
+        } catch (e: Exception) {
+            message = "Error al importar: ${e.message ?: e.javaClass.simpleName}"
+        }
+    }
+
     private fun persist(lib: LiveperfLibrary) {
         library = lib
         store.save(lib)
@@ -166,10 +232,19 @@ class MainActivity : ComponentActivity() {
         screen = when (val s = screen) {
             AppScreen.Home -> s
             AppScreen.EditHub, AppScreen.LivePickGroup -> AppScreen.Home
-            AppScreen.EditGroups, AppScreen.EditSetlists, AppScreen.EditSongs -> AppScreen.EditHub
+            AppScreen.EditGroups, AppScreen.EditSongs -> AppScreen.EditHub
             is AppScreen.EditGroupDetail -> AppScreen.EditGroups
-            is AppScreen.EditSetlistDetail -> AppScreen.EditSetlists
-            is AppScreen.EditSongDetail -> AppScreen.EditSongs
+            is AppScreen.EditSetlistDetail -> AppScreen.EditGroupDetail(s.parentGroupId)
+            is AppScreen.EditSongDetail -> {
+                val setlistId = s.parentSetlistId
+                val groupId = s.parentGroupId
+                    ?: setlistId?.let { library.groupsContainingSetlist(it).singleOrNull()?.id }
+                when {
+                    setlistId != null && groupId != null ->
+                        AppScreen.EditSetlistDetail(setlistId, groupId)
+                    else -> AppScreen.EditSongs
+                }
+            }
             is AppScreen.LivePickSetlist -> AppScreen.LivePickGroup
             is AppScreen.LiveSong -> AppScreen.LivePickSetlist(s.groupId)
         }

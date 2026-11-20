@@ -1,0 +1,515 @@
+{
+  "device": "V3Sound Grand Piano Pro",
+  "bankMsb": 0,
+  "revision": "01.Feb.2026",
+  "sounds": [
+    {
+      "program": 0,
+      "name": "Grand Piano BÖS 270 Classic"
+    },
+    {
+      "program": 1,
+      "name": "Grand Piano STE Mod. D Classic"
+    },
+    {
+      "program": 2,
+      "name": "Grand Piano YAM C4 Classic"
+    },
+    {
+      "program": 3,
+      "name": "Upright Piano SCH K132 Classic"
+    },
+    {
+      "program": 4,
+      "name": "Grand Piano BÖS 270 Pop"
+    },
+    {
+      "program": 5,
+      "name": "Grand Piano STE Mod. D Pop"
+    },
+    {
+      "program": 6,
+      "name": "Grand Piano YAM C4 Pop"
+    },
+    {
+      "program": 7,
+      "name": "Upright Piano SCH K132 Pop"
+    },
+    {
+      "program": 8,
+      "name": "Grand Piano BÖS 270 Rock Attack"
+    },
+    {
+      "program": 9,
+      "name": "Grand Piano STE Mod. D Rock Attack"
+    },
+    {
+      "program": 10,
+      "name": "Grand Piano YAM C4 Rock Attack"
+    },
+    {
+      "program": 11,
+      "name": "Upright Piano SCH K132 Rock Attack"
+    },
+    {
+      "program": 12,
+      "name": "Grand Piano BÖS 270 Dream"
+    },
+    {
+      "program": 13,
+      "name": "Grand Piano STE Mod. D Latin Octave"
+    },
+    {
+      "program": 14,
+      "name": "Grand Piano YAM C4 Dream"
+    },
+    {
+      "program": 15,
+      "name": "Upright Piano SCH K132 Dream"
+    },
+    {
+      "program": 16,
+      "name": "Grand Piano BÖS 270 + Soft Pad"
+    },
+    {
+      "program": 17,
+      "name": "Grand Piano STE Mod. D + Soft Pad"
+    },
+    {
+      "program": 18,
+      "name": "Grand Piano YAM C4 + Soft Pad"
+    },
+    {
+      "program": 19,
+      "name": "Upright Piano SCH K132 + Soft Pad"
+    },
+    {
+      "program": 20,
+      "name": "Grand Piano BÖS 270 Cinematic soft"
+    },
+    {
+      "program": 21,
+      "name": "Grand Piano STE Mod. D Cinematic soft"
+    },
+    {
+      "program": 22,
+      "name": "Grand Piano YAM C4 Cinematic soft"
+    },
+    {
+      "program": 23,
+      "name": "Upright Piano SCH K132 Cinematic soft"
+    },
+    {
+      "program": 24,
+      "name": "Upright Piano SCH K132 Felt"
+    },
+    {
+      "program": 25,
+      "name": "Upright Piano SCH K132 Felt (lite)"
+    },
+    {
+      "program": 26,
+      "name": "Electric Grand CP70 Standard"
+    },
+    {
+      "program": 27,
+      "name": "Electric Grand CP70 Tremolo"
+    },
+    {
+      "program": 28,
+      "name": "Electric Grand CP70 Pedal Down Reso."
+    },
+    {
+      "program": 29,
+      "name": "Electric Grand CP70 + Soft Pad"
+    },
+    {
+      "program": 30,
+      "name": "Electric Grand CP70 Dream"
+    },
+    {
+      "program": 31,
+      "name": "Electric Grand CP80 Standard"
+    },
+    {
+      "program": 32,
+      "name": "Electric Grand CP80 Tremolo"
+    },
+    {
+      "program": 33,
+      "name": "Electric Grand CP80 Pedal Down Reso."
+    },
+    {
+      "program": 34,
+      "name": "Electric Grand CP80 + Soft Pad"
+    },
+    {
+      "program": 35,
+      "name": "Electric Grand CP80 Dream"
+    },
+    {
+      "program": 36,
+      "name": "Electric Grand CP70+CP80 Standard"
+    },
+    {
+      "program": 37,
+      "name": "Electric Grand CP70+CP80 Tremolo"
+    },
+    {
+      "program": 38,
+      "name": "Electric Grand CP70+CP80 Pedal Down Reso."
+    },
+    {
+      "program": 39,
+      "name": "Electric Grand CP70+CP80 PDR Tremolo"
+    },
+    {
+      "program": 40,
+      "name": "Electric Grand CP70+CP80 Dream"
+    },
+    {
+      "program": 41,
+      "name": "E-Piano MK1 1975 Classic"
+    },
+    {
+      "program": 42,
+      "name": "E-Piano MK1 1975 Tremolo"
+    },
+    {
+      "program": 43,
+      "name": "E-Piano MK1 1975 + FM Layer"
+    },
+    {
+      "program": 44,
+      "name": "E-Piano MK1 1975 + Soft Pad"
+    },
+    {
+      "program": 45,
+      "name": "E-Piano MK2 1984 Classic"
+    },
+    {
+      "program": 46,
+      "name": "E-Piano MK2 1984 Tremolo"
+    },
+    {
+      "program": 47,
+      "name": "E-Piano MK2 1984 + FM Layer"
+    },
+    {
+      "program": 48,
+      "name": "E-Piano MK2 1984 + OB Pad"
+    },
+    {
+      "program": 49,
+      "name": "E-Piano DYNO 1979 Classic"
+    },
+    {
+      "program": 50,
+      "name": "E-Piano DYNO 1979 Tremolo"
+    },
+    {
+      "program": 51,
+      "name": "E-Piano DYNO 1979 Tremolo fast"
+    },
+    {
+      "program": 52,
+      "name": "E-Piano DYNO 1979 + MK1 1985"
+    },
+    {
+      "program": 53,
+      "name": "E-Piano MK1 1975Q Bell Version"
+    },
+    {
+      "program": 54,
+      "name": "E-Piano MK1 1975Q + Note-off Bells"
+    },
+    {
+      "program": 55,
+      "name": "E-Piano A200 Standard"
+    },
+    {
+      "program": 56,
+      "name": "E-Piano A200 Tremolo"
+    },
+    {
+      "program": 57,
+      "name": "E-Piano W140B Standard"
+    },
+    {
+      "program": 58,
+      "name": "E-Piano W140B Tremolo"
+    },
+    {
+      "program": 59,
+      "name": "E-Piano FM 1 Standard"
+    },
+    {
+      "program": 60,
+      "name": "E-Piano FM 1 Tremolo"
+    },
+    {
+      "program": 61,
+      "name": "E-Piano FM 5 Standard"
+    },
+    {
+      "program": 62,
+      "name": "E-Piano FM 5 Tremolo"
+    },
+    {
+      "program": 63,
+      "name": "E-Piano FM 7 Standard"
+    },
+    {
+      "program": 64,
+      "name": "E-Piano FM 7 Tremolo"
+    },
+    {
+      "program": 65,
+      "name": "E-Piano FM 7 + Soft Pad"
+    },
+    {
+      "program": 66,
+      "name": "Bell Tone"
+    },
+    {
+      "program": 67,
+      "name": "Clavinet D6"
+    },
+    {
+      "program": 68,
+      "name": "String Ensemble"
+    },
+    {
+      "program": 69,
+      "name": "Synth Bell"
+    },
+    {
+      "program": 70,
+      "name": "Synth Pad 1 M12"
+    },
+    {
+      "program": 71,
+      "name": "Synth Pad 2 OB"
+    },
+    {
+      "program": 72,
+      "name": "Synth Pad 3 OB"
+    },
+    {
+      "program": 73,
+      "name": "Synth Pad 4 DIGI"
+    },
+    {
+      "program": 74,
+      "name": "Synth Poly MKS70"
+    },
+    {
+      "program": 75,
+      "name": "Synth P5 Brass"
+    },
+    {
+      "program": 76,
+      "name": "Synth Digital WAVE"
+    },
+    {
+      "program": 77,
+      "name": "Synth Brass MKS70"
+    },
+    {
+      "program": 78,
+      "name": "Organ 776555678 slow"
+    },
+    {
+      "program": 79,
+      "name": "Organ 776555678 fast"
+    },
+    {
+      "program": 80,
+      "name": "Organ 800000568 slow"
+    },
+    {
+      "program": 81,
+      "name": "Organ 800000568 fast"
+    },
+    {
+      "program": 82,
+      "name": "Organ 008530000 slow"
+    },
+    {
+      "program": 83,
+      "name": "Organ 008530000 fast"
+    },
+    {
+      "program": 84,
+      "name": "Organ 800000000 slow"
+    },
+    {
+      "program": 85,
+      "name": "Organ 800000000 fast"
+    },
+    {
+      "program": 86,
+      "name": "Organ 807800000 slow"
+    },
+    {
+      "program": 87,
+      "name": "Organ 807800000 fast"
+    },
+    {
+      "program": 88,
+      "name": "Organ 888 perc slow"
+    },
+    {
+      "program": 89,
+      "name": "Organ C3 Full"
+    },
+    {
+      "program": 90,
+      "name": "Classic Pipe Organ Combi Funds"
+    },
+    {
+      "program": 91,
+      "name": "Classic Pipe Organ Tutti"
+    },
+    {
+      "program": 92,
+      "name": "Choir Ooh"
+    },
+    {
+      "program": 93,
+      "name": "Choir Ahh Classic"
+    },
+    {
+      "program": 94,
+      "name": "Accordion"
+    },
+    {
+      "program": 95,
+      "name": "Nylon Guitar"
+    },
+    {
+      "program": 96,
+      "name": "Xylophone"
+    },
+    {
+      "program": 97,
+      "name": "Marimba"
+    },
+    {
+      "program": 98,
+      "name": "Glockenspiel"
+    },
+    {
+      "program": 99,
+      "name": "Vibraphone"
+    },
+    {
+      "program": 100,
+      "name": "Celeste"
+    },
+    {
+      "program": 101,
+      "name": "Timpani"
+    },
+    {
+      "program": 102,
+      "name": "Flute"
+    },
+    {
+      "program": 103,
+      "name": "Tenor Sax Jazz"
+    },
+    {
+      "program": 104,
+      "name": "Brass Section"
+    },
+    {
+      "program": 105,
+      "name": "E-Bass"
+    },
+    {
+      "program": 106,
+      "name": "Jazz Bass"
+    },
+    {
+      "program": 107,
+      "name": "Synth Bass"
+    },
+    {
+      "program": 108,
+      "name": "Grand Piano BÖS 270 Classic Soft Curve"
+    },
+    {
+      "program": 109,
+      "name": "Grand Piano BÖS 270 Live Resonance"
+    },
+    {
+      "program": 110,
+      "name": "Grand Piano BÖS 270 simple"
+    },
+    {
+      "program": 111,
+      "name": "Grand Piano BÖS 270 + Strings"
+    },
+    {
+      "program": 112,
+      "name": "Grand Piano BÖS 270 + Digi Atk."
+    },
+    {
+      "program": 113,
+      "name": "Grand Piano BÖS 270 Cine + Digi Attack"
+    },
+    {
+      "program": 114,
+      "name": "Grand Piano STE Mod. D Classic Soft"
+    },
+    {
+      "program": 115,
+      "name": "Grand Piano STE Mod. D Live Resonance"
+    },
+    {
+      "program": 116,
+      "name": "Grand Piano STE Mod. D simple"
+    },
+    {
+      "program": 117,
+      "name": "Grand Piano STE Mod. D + Strings"
+    },
+    {
+      "program": 118,
+      "name": "Grand Piano STE Mod. D + Bell"
+    },
+    {
+      "program": 119,
+      "name": "Grand Piano STE Mod. D Cine + DynoTrem."
+    },
+    {
+      "program": 120,
+      "name": "Grand Piano YAM C4 Standard Mapping"
+    },
+    {
+      "program": 121,
+      "name": "Grand Piano YAM C4 Live Resonance"
+    },
+    {
+      "program": 122,
+      "name": "Grand Piano YAM C4 simple"
+    },
+    {
+      "program": 123,
+      "name": "Grand Piano YAM C4 + Strings"
+    },
+    {
+      "program": 124,
+      "name": "Grand Piano YAM C4 + Digi Attack"
+    },
+    {
+      "program": 125,
+      "name": "Grand Piano YAM C4 Cinematic + Digi"
+    },
+    {
+      "program": 126,
+      "name": "Orchestra Percussion"
+    }
+  ]
+}

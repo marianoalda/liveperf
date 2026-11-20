@@ -54,21 +54,26 @@ fun ListRow(
     subtitle: String? = null,
     onClick: () -> Unit,
     onDelete: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
+    val vPad = if (compact) 2.dp else 4.dp
+    val innerPad = if (compact) 8.dp else 12.dp
+    val titleSize = if (compact) 16.sp else 18.sp
+    val subtitleSize = if (compact) 12.sp else 13.sp
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = vPad)
             .background(Panel, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(innerPad),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = Soft, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            Text(title, color = Soft, fontSize = titleSize, fontWeight = FontWeight.SemiBold)
             if (!subtitle.isNullOrBlank()) {
-                Text(subtitle, color = Soft.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text(subtitle, color = Soft.copy(alpha = 0.7f), fontSize = subtitleSize)
             }
         }
         if (onDelete != null) {

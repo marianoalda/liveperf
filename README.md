@@ -57,8 +57,40 @@ Sin el `pm grant`, verás el aviso de permiso y el resto de la app (MIDI) sigue 
 
 ## Uso
 
-- **Modo edición**: define grupos, setlists, canciones (BPM, tonalidad, notas de cambios) e instrumentos por nombre/PC del catálogo V3.
+- **Modo edición** (padre implícito): **Grupos** → setlist (ya ligada al grupo) → canciones (ya ligadas a la setlist) → instrumentos. Al crear setlist/canción se abre el nivel inferior para completarla de una vez. **Canciones** es un atajo posterior para retocar BPM/tonalidad/instrumentos sin redefinir el árbol.
+- **Importar JSON** (desde el móvil): en edición → **Importar JSON**. Reemplaza toda la biblioteca. Los instrumentos van por **nombre** (ver `v3sound-grandpianopro.json`). Ejemplo: [`examples/library-example.json`](examples/library-example.json).
 - **Modo directo**: elige grupo → setlist → canción. Instrumentos: un toque (activo más brillante). Siguiente/atrás de canción: **doble toque** (botón grande / pequeño) para evitar fallos en escenario. Al entrar en una canción se envía el primer instrumento.
+
+### Formato JSON de importación
+
+```json
+{
+  "groups": [
+    {
+      "name": "Grupo demo",
+      "setlists": [
+        {
+          "name": "Setlist demo",
+          "songs": [
+            {
+              "title": "Ejemplo",
+              "bpm": 120,
+              "key": "C",
+              "instrumentNotes": "Intro piano, estribillo órgano",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic",
+                "Organ 776555678 slow"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Catálogo de referencia (nombre ↔ program change): [`v3sound-grandpianopro.json`](v3sound-grandpianopro.json) (también embebido en `app/src/main/assets/`).
 
 ## MIDI en directo
 

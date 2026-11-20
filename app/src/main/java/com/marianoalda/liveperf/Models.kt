@@ -45,6 +45,37 @@ data class LiveperfLibrary(
         val g = group(groupId) ?: return emptyList()
         return g.setlistIds.mapNotNull { setlist(it) }
     }
+
+    fun groupsContainingSetlist(setlistId: String): List<Group> =
+        groups.filter { setlistId in it.setlistIds }
+
+    fun setlistsContainingSong(songId: String): List<Setlist> =
+        setlists.filter { songId in it.songIds }
+
+    /** Prefer explicit ids; otherwise infer a unique parent path. */
+    fun breadcrumb(
+        groupId: String? = null,
+        setlistId: String? = null,
+        songId: String? = null,
+    ): String {
+        val groupName = groupId?.let { group(it)?.name }
+            ?: setlistId?.let { groupsContainingSetlist(it).singleOrNull()?.name }
+            ?: songId?.let { sid ->
+                setlistsContainingSong(sid).singleOrNull()?.let { sl ->
+                    groupsContainingSetlist(sl.id).singleOrNull()?.name
+                }
+            }
+        val setlistName = setlistId?.let { setlist(it)?.name }
+            ?: songId?.let { setlistsContainingSong(it).singleOrNull()?.name }
+        val songName = songId?.let { song(it)?.title }
+        return listOfNotNull(groupName, setlistName, songName).joinToString(" › ")
+    }
+
+    fun songParentContext(songId: String): Pair<String?, String?> {
+        val sl = setlistsContainingSong(songId).singleOrNull()
+        val g = sl?.let { groupsContainingSetlist(it.id).singleOrNull() }
+        return g?.id to sl?.id
+    }
 }
 
 sealed class AppScreen {
@@ -52,10 +83,16 @@ sealed class AppScreen {
     data object EditHub : AppScreen()
     data object EditGroups : AppScreen()
     data class EditGroupDetail(val groupId: String) : AppScreen()
-    data object EditSetlists : AppScreen()
-    data class EditSetlistDetail(val setlistId: String) : AppScreen()
+    data class EditSetlistDetail(
+        val setlistId: String,
+        val parentGroupId: String,
+    ) : AppScreen()
     data object EditSongs : AppScreen()
-    data class EditSongDetail(val songId: String) : AppScreen()
+    data class EditSongDetail(
+        val songId: String,
+        val parentSetlistId: String? = null,
+        val parentGroupId: String? = null,
+    ) : AppScreen()
     data object LivePickGroup : AppScreen()
     data class LivePickSetlist(val groupId: String) : AppScreen()
     data class LiveSong(

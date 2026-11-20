@@ -1,141 +1,51 @@
 package com.marianoalda.liveperf
-/** V3 Grand Piano Pro sound list, Bank MSB 0 (Rev. 01.Feb.2026). */
+
+import android.content.Context
+import org.json.JSONObject
+
+/** V3 Grand Piano Pro sound list, Bank MSB 0 (Rev. 01.Feb.2026). Loaded from assets. */
 data class V3Sound(val program: Int, val name: String)
 
 object V3SoundCatalog {
-    val sounds: List<V3Sound> = listOf(
-        V3Sound(0, "Grand Piano BÖS 270 Classic"),
-        V3Sound(1, "Grand Piano STE Mod. D Classic"),
-        V3Sound(2, "Grand Piano YAM C4 Classic"),
-        V3Sound(3, "Upright Piano SCH K132 Classic"),
-        V3Sound(4, "Grand Piano BÖS 270 Pop"),
-        V3Sound(5, "Grand Piano STE Mod. D Pop"),
-        V3Sound(6, "Grand Piano YAM C4 Pop"),
-        V3Sound(7, "Upright Piano SCH K132 Pop"),
-        V3Sound(8, "Grand Piano BÖS 270 Rock Attack"),
-        V3Sound(9, "Grand Piano STE Mod. D Rock Attack"),
-        V3Sound(10, "Grand Piano YAM C4 Rock Attack"),
-        V3Sound(11, "Upright Piano SCH K132 Rock Attack"),
-        V3Sound(12, "Grand Piano BÖS 270 Dream"),
-        V3Sound(13, "Grand Piano STE Mod. D Latin Octave"),
-        V3Sound(14, "Grand Piano YAM C4 Dream"),
-        V3Sound(15, "Upright Piano SCH K132 Dream"),
-        V3Sound(16, "Grand Piano BÖS 270 + Soft Pad"),
-        V3Sound(17, "Grand Piano STE Mod. D + Soft Pad"),
-        V3Sound(18, "Grand Piano YAM C4 + Soft Pad"),
-        V3Sound(19, "Upright Piano SCH K132 + Soft Pad"),
-        V3Sound(20, "Grand Piano BÖS 270 Cinematic soft"),
-        V3Sound(21, "Grand Piano STE Mod. D Cinematic soft"),
-        V3Sound(22, "Grand Piano YAM C4 Cinematic soft"),
-        V3Sound(23, "Upright Piano SCH K132 Cinematic soft"),
-        V3Sound(24, "Upright Piano SCH K132 Felt"),
-        V3Sound(25, "Upright Piano SCH K132 Felt (lite)"),
-        V3Sound(26, "Electric Grand CP70 Standard"),
-        V3Sound(27, "Electric Grand CP70 Tremolo"),
-        V3Sound(28, "Electric Grand CP70 Pedal Down Reso."),
-        V3Sound(29, "Electric Grand CP70 + Soft Pad"),
-        V3Sound(30, "Electric Grand CP70 Dream"),
-        V3Sound(31, "Electric Grand CP80 Standard"),
-        V3Sound(32, "Electric Grand CP80 Tremolo"),
-        V3Sound(33, "Electric Grand CP80 Pedal Down Reso."),
-        V3Sound(34, "Electric Grand CP80 + Soft Pad"),
-        V3Sound(35, "Electric Grand CP80 Dream"),
-        V3Sound(36, "Electric Grand CP70+CP80 Standard"),
-        V3Sound(37, "Electric Grand CP70+CP80 Tremolo"),
-        V3Sound(38, "Electric Grand CP70+CP80 Pedal Down Reso."),
-        V3Sound(39, "Electric Grand CP70+CP80 PDR Tremolo"),
-        V3Sound(40, "Electric Grand CP70+CP80 Dream"),
-        V3Sound(41, "E-Piano MK1 1975 Classic"),
-        V3Sound(42, "E-Piano MK1 1975 Tremolo"),
-        V3Sound(43, "E-Piano MK1 1975 + FM Layer"),
-        V3Sound(44, "E-Piano MK1 1975 + Soft Pad"),
-        V3Sound(45, "E-Piano MK2 1984 Classic"),
-        V3Sound(46, "E-Piano MK2 1984 Tremolo"),
-        V3Sound(47, "E-Piano MK2 1984 + FM Layer"),
-        V3Sound(48, "E-Piano MK2 1984 + OB Pad"),
-        V3Sound(49, "E-Piano DYNO 1979 Classic"),
-        V3Sound(50, "E-Piano DYNO 1979 Tremolo"),
-        V3Sound(51, "E-Piano DYNO 1979 Tremolo fast"),
-        V3Sound(52, "E-Piano DYNO 1979 + MK1 1985"),
-        V3Sound(53, "E-Piano MK1 1975Q Bell Version"),
-        V3Sound(54, "E-Piano MK1 1975Q + Note-off Bells"),
-        V3Sound(55, "E-Piano A200 Standard"),
-        V3Sound(56, "E-Piano A200 Tremolo"),
-        V3Sound(57, "E-Piano W140B Standard"),
-        V3Sound(58, "E-Piano W140B Tremolo"),
-        V3Sound(59, "E-Piano FM 1 Standard"),
-        V3Sound(60, "E-Piano FM 1 Tremolo"),
-        V3Sound(61, "E-Piano FM 5 Standard"),
-        V3Sound(62, "E-Piano FM 5 Tremolo"),
-        V3Sound(63, "E-Piano FM 7 Standard"),
-        V3Sound(64, "E-Piano FM 7 Tremolo"),
-        V3Sound(65, "E-Piano FM 7 + Soft Pad"),
-        V3Sound(66, "Bell Tone"),
-        V3Sound(67, "Clavinet D6"),
-        V3Sound(68, "String Ensemble"),
-        V3Sound(69, "Synth Bell"),
-        V3Sound(70, "Synth Pad 1 M12"),
-        V3Sound(71, "Synth Pad 2 OB"),
-        V3Sound(72, "Synth Pad 3 OB"),
-        V3Sound(73, "Synth Pad 4 DIGI"),
-        V3Sound(74, "Synth Poly MKS70"),
-        V3Sound(75, "Synth P5 Brass"),
-        V3Sound(76, "Synth Digital WAVE"),
-        V3Sound(77, "Synth Brass MKS70"),
-        V3Sound(78, "Organ 776555678 slow"),
-        V3Sound(79, "Organ 776555678 fast"),
-        V3Sound(80, "Organ 800000568 slow"),
-        V3Sound(81, "Organ 800000568 fast"),
-        V3Sound(82, "Organ 008530000 slow"),
-        V3Sound(83, "Organ 008530000 fast"),
-        V3Sound(84, "Organ 800000000 slow"),
-        V3Sound(85, "Organ 800000000 fast"),
-        V3Sound(86, "Organ 807800000 slow"),
-        V3Sound(87, "Organ 807800000 fast"),
-        V3Sound(88, "Organ 888 perc slow"),
-        V3Sound(89, "Organ C3 Full"),
-        V3Sound(90, "Classic Pipe Organ Combi Funds"),
-        V3Sound(91, "Classic Pipe Organ Tutti"),
-        V3Sound(92, "Choir Ooh"),
-        V3Sound(93, "Choir Ahh Classic"),
-        V3Sound(94, "Accordion"),
-        V3Sound(95, "Nylon Guitar"),
-        V3Sound(96, "Xylophone"),
-        V3Sound(97, "Marimba"),
-        V3Sound(98, "Glockenspiel"),
-        V3Sound(99, "Vibraphone"),
-        V3Sound(100, "Celeste"),
-        V3Sound(101, "Timpani"),
-        V3Sound(102, "Flute"),
-        V3Sound(103, "Tenor Sax Jazz"),
-        V3Sound(104, "Brass Section"),
-        V3Sound(105, "E-Bass"),
-        V3Sound(106, "Jazz Bass"),
-        V3Sound(107, "Synth Bass"),
-        V3Sound(108, "Grand Piano BÖS 270 Classic Soft Curve"),
-        V3Sound(109, "Grand Piano BÖS 270 Live Resonance"),
-        V3Sound(110, "Grand Piano BÖS 270 simple"),
-        V3Sound(111, "Grand Piano BÖS 270 + Strings"),
-        V3Sound(112, "Grand Piano BÖS 270 + Digi Atk."),
-        V3Sound(113, "Grand Piano BÖS 270 Cine + Digi Attack"),
-        V3Sound(114, "Grand Piano STE Mod. D Classic Soft"),
-        V3Sound(115, "Grand Piano STE Mod. D Live Resonance"),
-        V3Sound(116, "Grand Piano STE Mod. D simple"),
-        V3Sound(117, "Grand Piano STE Mod. D + Strings"),
-        V3Sound(118, "Grand Piano STE Mod. D + Bell"),
-        V3Sound(119, "Grand Piano STE Mod. D Cine + DynoTrem."),
-        V3Sound(120, "Grand Piano YAM C4 Standard Mapping"),
-        V3Sound(121, "Grand Piano YAM C4 Live Resonance"),
-        V3Sound(122, "Grand Piano YAM C4 simple"),
-        V3Sound(123, "Grand Piano YAM C4 + Strings"),
-        V3Sound(124, "Grand Piano YAM C4 + Digi Attack"),
-        V3Sound(125, "Grand Piano YAM C4 Cinematic + Digi"),
-        V3Sound(126, "Orchestra Percussion"),
-    )
+    private const val ASSET = "v3sound-grandpianopro.json"
 
-    private val byProgram: Map<Int, V3Sound> = sounds.associateBy { it.program }
+    @Volatile
+    private var soundsInternal: List<V3Sound> = emptyList()
+
+    val sounds: List<V3Sound>
+        get() = soundsInternal
+
+    private val byProgram: Map<Int, V3Sound>
+        get() = soundsInternal.associateBy { it.program }
+
+    private val byName: Map<String, V3Sound>
+        get() = soundsInternal.associateBy { it.name.lowercase() }
+
+    fun init(context: Context) {
+        if (soundsInternal.isNotEmpty()) return
+        synchronized(this) {
+            if (soundsInternal.isNotEmpty()) return
+            soundsInternal = context.assets.open(ASSET).bufferedReader().use { reader ->
+                val root = JSONObject(reader.readText())
+                val arr = root.getJSONArray("sounds")
+                buildList {
+                    for (i in 0 until arr.length()) {
+                        val o = arr.getJSONObject(i)
+                        add(V3Sound(program = o.getInt("program"), name = o.getString("name")))
+                    }
+                }
+            }
+        }
+    }
 
     fun find(program: Int): V3Sound? = byProgram[program]
+
+    fun findByName(name: String): V3Sound? {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return null
+        byProgram[trimmed.toIntOrNull()]?.let { return it }
+        return byName[trimmed.lowercase()]
+    }
 
     fun label(program: Int): String =
         find(program)?.let { "${it.name} (PC ${it.program})" } ?: "PC $program"
