@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -89,6 +90,7 @@ fun LiveSongScreen(
     onBack: () -> Unit,
     onSongIndex: (Int) -> Unit,
     onProgramChange: (Int) -> Unit,
+    onMidiReset: () -> Unit,
     onSave: (LiveperfLibrary) -> Unit,
 ) {
     val songs = library.songsInSetlist(setlistId)
@@ -119,14 +121,19 @@ fun LiveSongScreen(
         hint = ""
     }
 
+    fun clearPendingNav() {
+        pendingNav = null
+        hint = ""
+    }
+
     fun armOrFire(nav: NavPending) {
         val now = System.currentTimeMillis()
         if (pendingNav == nav && now - pendingAt < 1200) {
-            pendingNav = null
-            hint = ""
+            clearPendingNav()
             when (nav) {
                 NavPending.Next -> if (index < songs.lastIndex) onSongIndex(index + 1)
                 NavPending.Prev -> if (index > 0) onSongIndex(index - 1)
+                NavPending.MidiReset -> onMidiReset()
             }
         } else {
             pendingNav = nav
@@ -134,14 +141,22 @@ fun LiveSongScreen(
             hint = when (nav) {
                 NavPending.Next -> "Pulsa otra vez SIGUIENTE"
                 NavPending.Prev -> "Pulsa otra vez ATRÁS"
+                NavPending.MidiReset -> "Pulsa otra vez MIDI RESET"
             }
         }
     }
+
+    val clearOutsideInteraction = remember { MutableInteractionSource() }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Navy)
+            .clickable(
+                interactionSource = clearOutsideInteraction,
+                indication = null,
+                enabled = pendingNav != null,
+            ) { clearPendingNav() }
             .padding(12.dp),
     ) {
         Row(
@@ -221,8 +236,7 @@ fun LiveSongScreen(
                                         onClick = {
                                             activeProgram = pc
                                             onProgramChange(pc)
-                                            pendingNav = null
-                                            hint = ""
+                                            clearPendingNav()
                                         },
                                         onLongClick = { editingProgram = pc },
                                     )
@@ -285,6 +299,19 @@ fun LiveSongScreen(
                     }
                     Box(
                         modifier = Modifier
+                            .width(100.dp)
+                            .height(72.dp)
+                            .background(
+                                if (pendingNav == NavPending.MidiReset) Danger else Panel,
+                                RoundedCornerShape(12.dp),
+                            )
+                            .clickable { armOrFire(NavPending.MidiReset) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("MIDI\nRESET\n(2×)", color = Soft, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                    Box(
+                        modifier = Modifier
                             .weight(1f)
                             .height(96.dp)
                             .background(
@@ -307,4 +334,4 @@ fun LiveSongScreen(
     }
 }
 
-private enum class NavPending { Next, Prev }
+private enum class NavPending { Next, Prev, MidiReset }

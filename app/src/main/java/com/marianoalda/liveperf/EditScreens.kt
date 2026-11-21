@@ -37,6 +37,7 @@ fun EditHubScreen(
     onBack: () -> Unit,
     onGroups: () -> Unit,
     onSongs: () -> Unit,
+    onLabels: () -> Unit,
     onImportJson: () -> Unit,
     onExportJson: () -> Unit,
     onDownloadGithub: () -> Unit,
@@ -59,6 +60,12 @@ fun EditHubScreen(
                 "Canciones",
                 "Atajo para retocar BPM, tonalidad o instrumentos",
                 onClick = onSongs,
+                compact = true,
+            )
+            ListRow(
+                "Etiquetas",
+                "Renombrar y remapear sonidos V3 de las etiquetas de botón",
+                onClick = onLabels,
                 compact = true,
             )
             ListRow(
@@ -521,7 +528,6 @@ fun EditSongDetailScreen(
     var bpmText by remember(song.id) { mutableStateOf(song.bpm?.toString().orEmpty()) }
     var key by remember(song.id) { mutableStateOf(song.key) }
     var notes by remember(song.id) { mutableStateOf(song.instrumentNotes) }
-    var filter by remember { mutableStateOf("") }
     var editingProgram by remember { mutableStateOf<Int?>(null) }
 
     fun persist(instruments: List<Int> = library.song(songId)?.instruments ?: song.instruments) {
@@ -610,48 +616,10 @@ fun EditSongDetailScreen(
                 }
             }
 
-            DarkField(
-                filter,
-                { filter = it },
-                "Filtrar por nombre (sin distinguir mayúsculas)",
+            V3InstrumentPicker(
+                excludePrograms = current.instruments.toSet(),
+                onPick = { sound -> persist(current.instruments + sound.program) },
             )
-            val q = filter.trim()
-            val matches = remember(q, current.instruments) {
-                V3SoundCatalog.sounds.filter { sound ->
-                    sound.program !in current.instruments && (
-                        q.isEmpty() ||
-                            sound.name.contains(q, ignoreCase = true) ||
-                            sound.program.toString() == q
-                        )
-                }
-            }
-            Text(
-                if (q.isEmpty()) {
-                    "${matches.size} sonidos · desplaza la lista"
-                } else {
-                    "${matches.size} coincidencias"
-                },
-                color = Soft.copy(alpha = 0.65f),
-                fontSize = 12.sp,
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(260.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(matches, key = { it.program }) { sound ->
-                    Text(
-                        text = sound.name,
-                        color = Soft,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(PanelDim, RoundedCornerShape(6.dp))
-                            .clickable { persist(current.instruments + sound.program) }
-                            .padding(10.dp),
-                    )
-                }
-            }
         }
     })
 }

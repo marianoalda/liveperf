@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -16,6 +19,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -119,4 +126,58 @@ fun PrimaryButton(
         modifier = modifier,
         colors = ButtonDefaults.buttonColors(containerColor = Panel, contentColor = Accent),
     ) { Text(text) }
+}
+
+/** Shared V3 catalog picker with case-insensitive name filter. */
+@Composable
+fun V3InstrumentPicker(
+    excludePrograms: Set<Int> = emptySet(),
+    listHeight: androidx.compose.ui.unit.Dp = 260.dp,
+    onPick: (V3Sound) -> Unit,
+) {
+    var filter by remember { mutableStateOf("") }
+    val q = filter.trim()
+    val matches = remember(q, excludePrograms) {
+        V3SoundCatalog.sounds.filter { sound ->
+            sound.program !in excludePrograms && (
+                q.isEmpty() ||
+                    sound.name.contains(q, ignoreCase = true) ||
+                    sound.program.toString() == q
+                )
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        DarkField(
+            filter,
+            { filter = it },
+            "Filtrar por nombre (sin distinguir mayúsculas)",
+        )
+        Text(
+            if (q.isEmpty()) {
+                "${matches.size} sonidos · desplaza la lista"
+            } else {
+                "${matches.size} coincidencias"
+            },
+            color = Soft.copy(alpha = 0.65f),
+            fontSize = 12.sp,
+        )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(listHeight),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            items(matches, key = { it.program }) { sound ->
+                Text(
+                    text = "${sound.name}  ·  PC ${sound.program}",
+                    color = Soft,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PanelDim, RoundedCornerShape(6.dp))
+                        .clickable { onPick(sound) }
+                        .padding(10.dp),
+                )
+            }
+        }
+    }
 }

@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
                             onBack = { screen = AppScreen.Home },
                             onGroups = { screen = AppScreen.EditGroups },
                             onSongs = { screen = AppScreen.EditSongs },
+                            onLabels = { screen = AppScreen.EditLabels },
                             onImportJson = {
                                 importJsonLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
                             },
@@ -138,6 +139,12 @@ class MainActivity : ComponentActivity() {
                             onDownloadGithub = {
                                 screen = AppScreen.EditGitHubDownload
                             },
+                        )
+
+                        AppScreen.EditLabels -> EditLabelsScreen(
+                            library = library,
+                            onBack = { screen = AppScreen.EditHub },
+                            onSave = ::persist,
                         )
 
                         AppScreen.EditGitHubDownload -> EditGitHubDownloadScreen(
@@ -249,6 +256,7 @@ class MainActivity : ComponentActivity() {
                             onProgramChange = { pc ->
                                 sendPc(pc)
                             },
+                            onMidiReset = ::sendMidiReset,
                             onSave = ::persist,
                         )
                     }
@@ -330,7 +338,7 @@ class MainActivity : ComponentActivity() {
         screen = when (val s = screen) {
             AppScreen.Home -> s
             AppScreen.EditHub, AppScreen.LivePickGroup -> AppScreen.Home
-            AppScreen.EditGitHubDownload -> AppScreen.EditHub
+            AppScreen.EditGitHubDownload, AppScreen.EditLabels -> AppScreen.EditHub
             AppScreen.EditGroups, AppScreen.EditSongs -> AppScreen.EditHub
             is AppScreen.EditGroupDetail -> AppScreen.EditGroups
             is AppScreen.EditSetlistDetail -> AppScreen.EditGroupDetail(s.parentGroupId)
@@ -367,6 +375,14 @@ class MainActivity : ComponentActivity() {
         val ok = midi.sendProgramChange(program, channel = 0)
         message = if (ok) {
             getString(R.string.midi_sent, program)
+        } else {
+            getString(R.string.midi_fail)
+        }
+    }
+
+    private fun sendMidiReset() {
+        message = if (midi.sendPanic()) {
+            "MIDI reset: notas silenciadas"
         } else {
             getString(R.string.midi_fail)
         }

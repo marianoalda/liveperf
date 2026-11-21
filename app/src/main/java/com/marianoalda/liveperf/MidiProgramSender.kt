@@ -71,6 +71,28 @@ class MidiProgramSender(context: Context) {
         }
     }
 
+    /**
+     * Silence stuck notes: All Sound Off (CC 120) + All Notes Off (CC 123)
+     * on every MIDI channel.
+     */
+    fun sendPanic(): Boolean {
+        val port = inputPort ?: run {
+            refreshDevice()
+            inputPort
+        } ?: return false
+        return try {
+            for (ch in 0..15) {
+                val status = (0xB0 or ch).toByte()
+                port.send(byteArrayOf(status, 120.toByte(), 0), 0, 3)
+                port.send(byteArrayOf(status, 123.toByte(), 0), 0, 3)
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "panic failed", e)
+            false
+        }
+    }
+
     private fun refreshDevice(force: Boolean = false) {
         val info = midiManager.devices.firstOrNull { isUsbMidiOutputTarget(it) }
         if (info == null) {

@@ -5,8 +5,17 @@
     fileName: null,
     library: null,
     dirty: false,
+    mode: "tree", // tree | labels
     sel: { g: null, s: null, song: null },
+    labelSel: null, // v3 name
+    labelDraft: "",
+    labelPicking: false,
+    labelCreating: false,
+    labelCreateDraft: "",
+    labelCreatePicking: false,
     instrumentFilter: "",
+    labelInstrFilter: "",
+    labelCreateFilter: "",
   };
 
   const $ = (id) => document.getElementById(id);
@@ -81,6 +90,111 @@
     markDirty();
   }
 
+  function pcOf(name) {
+    const s = state.catalog.find((x) => x.name === name);
+    return s ? s.program : null;
+  }
+
+  function labelEntries() {
+    const labels = state.library?.instrumentLabels || {};
+    return Object.entries(labels)
+      .map(([v3Name, label]) => {
+        const trimmed = (label || "").trim();
+        const program = pcOf(v3Name);
+        return trimmed && program != null
+          ? { v3Name, label: trimmed, program }
+          : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
+  }
+
+  function forEachSong(fn) {
+    (state.library.groups || []).forEach((g) => {
+      (g.setlists || []).forEach((sl) => {
+        (sl.songs || []).forEach((song) => fn(song));
+      });
+    });
+  }
+
+  /** Remap all song instruments from old V3 name to new; move label. */
+  function remapLabeledInstrument(oldV3Name, newV3Name, newLabel) {
+    const label = (newLabel || "").trim();
+    if (!state.library.instrumentLabels) state.library.instrumentLabels = {};
+    delete state.library.instrumentLabels[oldV3Name];
+    if (label) state.library.instrumentLabels[newV3Name] = label;
+    else delete state.library.instrumentLabels[newV3Name];
+
+    forEachSong((song) => {
+      if (!Array.isArray(song.instruments)) return;
+      const next = [];
+      const seen = new Set();
+      song.instruments.forEach((name) => {
+        const n = name === oldV3Name ? newV3Name : name;
+        if (!seen.has(n)) {
+          seen.add(n);
+          next.push(n);
+        }
+      });
+      song.instruments = next;
+    });
+    markDirty();
+  }
+
+  function renderInstrumentPicker(opts) {
+    const {
+      filterId,
+      pickerId,
+      filterValue,
+      excludeNames = new Set(),
+      emptyOk = true,
+    } = opts;
+    const q = (filterValue || "").trim();
+    const matches = state.catalog.filter((sound) => {
+      if (!emptyOk && excludeNames.has(sound.name)) return false;
+      if (excludeNames.has(sound.name)) return false;
+      if (!q) return true;
+      return (
+        sound.name.toLowerCase().includes(q.toLowerCase()) ||
+        String(sound.program) === q
+      );
+    });
+    return `
+      <div class="field">
+        <label>Filtrar por nombre (sin distinguir mayúsculas)</label>
+        <input type="text" id="${filterId}" value="${escapeAttr(filterValue || "")}" placeholder="piano, organ, pad…" />
+      </div>
+      <p class="hint">${matches.length} coincidencias · desplaza la lista</p>
+      <div class="picker" id="${pickerId}">
+        ${matches
+          .map(
+            (s) => `
+          <div class="item" data-name="${escapeAttr(s.name)}" data-program="${s.program}">
+            ${escapeHtml(s.name)}<span class="pc">PC ${s.program}</span>
+          </div>`
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    state.labelPicking = false;
+    $("mode-tree").classList.toggle("active", mode === "tree");
+    $("mode-labels").classList.toggle("active", mode === "labels");
+    const toolbar = $("tree-toolbar");
+    const title = $("tree-title");
+    if (mode === "labels") {
+      title.textContent = "Etiquetas";
+      toolbar.style.display = "none";
+    } else {
+      title.textContent = "Grupos";
+      toolbar.style.display = "";
+    }
+    renderAll();
+  }
+
   async function loadCatalog() {
     const data = await api("/api/catalog");
     state.catalog = data.sounds || [];
@@ -98,7 +212,15 @@
     state.fileName = name;
     state.library = ensureShape(data.library);
     state.sel = { g: null, s: null, song: null };
+    state.labelSel = null;
+    state.labelDraft = "";
+    state.labelPicking = false;
+    state.labelCreating = false;
+    state.labelCreateDraft = "";
+    state.labelCreatePicking = false;
     state.instrumentFilter = "";
+    state.labelInstrFilter = "";
+    state.labelCreateFilter = "";
     markDirty(false);
     setStatus(`Abierto: ${name}`, "ok");
     renderAll();
@@ -167,6 +289,50 @@
     const ul = $("group-list");
     ul.innerHTML = "";
     if (!state.library) return;
+
+    if (state.mode === "labels") {
+      const addLi = document.createElement("li");
+      addLi.className = state.labelCreating ? "active" : "";
+      addLi.innerHTML = `<span class="label">${state.labelCreating ? "Creando…" : "+ Crear etiqueta"}<span class="sub">Literal + instrumento V3</span></span>`;
+      addLi.onclick = () => {
+        state.labelCreating = !state.labelCreating;
+        state.labelCreatePicking = false;
+        state.labelCreateDraft = "";
+        state.labelCreateFilter = "";
+        if (state.labelCreating) {
+          state.labelSel = null;
+          state.labelPicking = false;
+        }
+        renderAll();
+      };
+      ul.appendChild(addLi);
+
+      const entries = labelEntries();
+      if (!entries.length && !state.labelCreating) {
+        const empty = document.createElement("li");
+        empty.className = "empty-li";
+        empty.innerHTML = `<span class="label">Sin etiquetas<span class="sub">Crea una o asígnalas en canciones</span></span>`;
+        ul.appendChild(empty);
+        return;
+      }
+      entries.forEach((entry) => {
+        const li = document.createElement("li");
+        if (state.labelSel === entry.v3Name && !state.labelCreating) li.classList.add("active");
+        li.innerHTML = `<span class="label">${escapeHtml(entry.label)}<span class="sub">PC ${entry.program} · ${escapeHtml(entry.v3Name)}</span></span>`;
+        li.onclick = () => {
+          state.labelSel = entry.v3Name;
+          state.labelDraft = entry.label;
+          state.labelPicking = false;
+          state.labelInstrFilter = "";
+          state.labelCreating = false;
+          state.labelCreatePicking = false;
+          renderAll();
+        };
+        ul.appendChild(li);
+      });
+      return;
+    }
+
     state.library.groups.forEach((g, gi) => {
       const li = document.createElement("li");
       if (state.sel.g === gi) li.classList.add("active");
@@ -209,6 +375,11 @@
     const panel = $("panel-detail");
     if (!state.library) {
       panel.innerHTML = `<p class="empty">Abre o crea un fichero JSON para editar.</p>`;
+      return;
+    }
+    if (state.mode === "labels") {
+      panel.innerHTML = renderLabelsEditor();
+      bindLabelsEditor();
       return;
     }
     const g = currentGroup();
@@ -557,6 +728,185 @@
     });
   }
 
+  function renderLabelsEditor() {
+    if (state.labelCreating) {
+      return `
+        <div class="crumb">Etiquetas › Nueva</div>
+        <p class="hint">Compatible con asignar etiqueta al añadir instrumento en una canción (mismo mapa instrumentLabels).</p>
+        <div class="field">
+          <label>Literal de la etiqueta (botón)</label>
+          <input type="text" id="lab-create-draft" value="${escapeAttr(state.labelCreateDraft)}" placeholder="ej. Piano, Órgano…" />
+        </div>
+        <div class="toolbar">
+          <button type="button" id="lab-create-pick">
+            ${state.labelCreatePicking ? "Ocultar catálogo" : "Elegir instrumento V3"}
+          </button>
+          <button type="button" id="lab-create-cancel">Cancelar</button>
+        </div>
+        ${
+          state.labelCreatePicking
+            ? `<p class="hint">Elige el sonido V3. Si ya tenía etiqueta, se sustituye.</p>
+               ${renderInstrumentPicker({
+                 filterId: "lab-create-filter",
+                 pickerId: "lab-create-picker",
+                 filterValue: state.labelCreateFilter,
+                 excludeNames: new Set(),
+               })}`
+            : ""
+        }
+      `;
+    }
+
+    const entries = labelEntries();
+    if (!entries.length) {
+      return `<p class="empty">No hay etiquetas. Usa «+ Crear etiqueta» o asígnalas en una canción.</p>`;
+    }
+    const entry = entries.find((e) => e.v3Name === state.labelSel);
+    if (!entry) {
+      return `<p class="empty">Selecciona una etiqueta en la columna central o crea una nueva.</p>`;
+    }
+    const draft = state.labelDraft;
+    return `
+      <div class="crumb">Etiquetas › ${escapeHtml(entry.label)}</div>
+      <p class="hint">Cambia el texto del botón o remapea la etiqueta a otro sonido V3 (se actualiza en todas las canciones).</p>
+      <div class="field">
+        <label>Literal de la etiqueta (botón)</label>
+        <input type="text" id="lab-draft" value="${escapeAttr(draft)}" />
+      </div>
+      <p><strong>Programa actual:</strong> PC ${entry.program}</p>
+      <p><strong>Instrumento V3:</strong> ${escapeHtml(entry.v3Name)}</p>
+      <div class="toolbar">
+        <button type="button" id="lab-save-literal" class="primary">Guardar literal</button>
+        <button type="button" id="lab-toggle-pick">
+          ${state.labelPicking ? "Ocultar catálogo" : "Cambiar instrumento V3"}
+        </button>
+        <button type="button" id="lab-delete" class="danger">Eliminar etiqueta</button>
+      </div>
+      <p class="hint">Eliminar quita solo la etiqueta propia; el instrumento sigue en las canciones.</p>
+      ${
+        state.labelPicking
+          ? `<p class="hint">Elige el nuevo sonido. Todas las canciones con «${escapeHtml(entry.v3Name)}» pasarán al nuevo instrumento.</p>
+             ${renderInstrumentPicker({
+               filterId: "lab-instr-filter",
+               pickerId: "lab-instr-picker",
+               filterValue: state.labelInstrFilter,
+               excludeNames: new Set(),
+             })}`
+          : ""
+      }
+    `;
+  }
+
+  function bindLabelsEditor() {
+    if (state.labelCreating) {
+      const draft = $("lab-create-draft");
+      $("lab-create-cancel").onclick = () => {
+        state.labelCreating = false;
+        state.labelCreatePicking = false;
+        state.labelCreateDraft = "";
+        renderAll();
+      };
+      $("lab-create-pick").onclick = () => {
+        state.labelCreateDraft = draft?.value || "";
+        if (!state.labelCreateDraft.trim()) {
+          setStatus("Escribe el literal de la etiqueta primero", "err");
+          return;
+        }
+        state.labelCreatePicking = !state.labelCreatePicking;
+        renderAll();
+      };
+      const filter = $("lab-create-filter");
+      if (filter) {
+        filter.oninput = () => {
+          state.labelCreateDraft = $("lab-create-draft")?.value ?? state.labelCreateDraft;
+          state.labelCreateFilter = filter.value;
+          const pos = filter.selectionStart;
+          renderAll();
+          const again = $("lab-create-filter");
+          if (again) {
+            again.focus();
+            again.setSelectionRange(pos, pos);
+          }
+        };
+      }
+      document.querySelectorAll("#lab-create-picker .item").forEach((el) => {
+        el.onclick = () => {
+          const name = el.dataset.name;
+          const text = ($("lab-create-draft")?.value || state.labelCreateDraft).trim();
+          if (!name || !text) return;
+          setLabel(name, text);
+          state.labelSel = name;
+          state.labelDraft = text;
+          state.labelCreating = false;
+          state.labelCreatePicking = false;
+          state.labelCreateDraft = "";
+          state.labelCreateFilter = "";
+          setStatus("Etiqueta creada (recuerda Guardar el fichero)", "ok");
+          renderAll();
+        };
+      });
+      return;
+    }
+
+    const saveLit = $("lab-save-literal");
+    if (!saveLit) return;
+    const entryName = state.labelSel;
+    saveLit.onclick = () => {
+      const text = $("lab-draft").value.trim();
+      if (!text || !entryName) return;
+      setLabel(entryName, text);
+      state.labelDraft = text;
+      setStatus("Literal actualizado (recuerda Guardar el fichero)", "ok");
+      renderAll();
+    };
+    $("lab-toggle-pick").onclick = () => {
+      state.labelDraft = $("lab-draft").value;
+      state.labelPicking = !state.labelPicking;
+      renderAll();
+    };
+    $("lab-delete").onclick = () => {
+      if (!entryName) return;
+      const label = state.library.instrumentLabels[entryName] || entryName;
+      if (!confirm(`¿Eliminar la etiqueta «${label}»? El instrumento V3 seguirá en las canciones.`)) {
+        return;
+      }
+      setLabel(entryName, "");
+      state.labelSel = null;
+      state.labelDraft = "";
+      state.labelPicking = false;
+      setStatus("Etiqueta eliminada (recuerda Guardar el fichero)", "ok");
+      renderAll();
+    };
+    const filter = $("lab-instr-filter");
+    if (filter) {
+      filter.oninput = () => {
+        state.labelDraft = $("lab-draft")?.value ?? state.labelDraft;
+        state.labelInstrFilter = filter.value;
+        const pos = filter.selectionStart;
+        renderAll();
+        const again = $("lab-instr-filter");
+        if (again) {
+          again.focus();
+          again.setSelectionRange(pos, pos);
+        }
+      };
+    }
+    document.querySelectorAll("#lab-instr-picker .item").forEach((el) => {
+      el.onclick = () => {
+        const newName = el.dataset.name;
+        const draft = ($("lab-draft")?.value || state.labelDraft).trim();
+        if (!entryName || !newName) return;
+        remapLabeledInstrument(entryName, newName, draft || state.labelDraft);
+        state.labelSel = newName;
+        state.labelDraft = draft || state.labelDraft;
+        state.labelPicking = false;
+        state.labelInstrFilter = "";
+        setStatus("Instrumento remapeado en todas las canciones (recuerda Guardar)", "ok");
+        renderAll();
+      };
+    });
+  }
+
   function renderAll() {
     renderFiles();
     renderGroups();
@@ -576,11 +926,14 @@
 
   $("btn-save").onclick = () => saveFile().catch((e) => setStatus(e.message, "err"));
   $("btn-new").onclick = () => createFile();
+  $("mode-tree").onclick = () => setMode("tree");
+  $("mode-labels").onclick = () => setMode("labels");
   $("btn-add-group").onclick = () => {
     if (!state.library) {
       setStatus("Abre o crea un fichero primero", "err");
       return;
     }
+    if (state.mode !== "tree") setMode("tree");
     const name = $("new-group").value.trim();
     if (!name) return;
     state.library.groups.push({ name, setlists: [] });

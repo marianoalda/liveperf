@@ -59,6 +59,59 @@ data class LiveperfLibrary(
         return copy(instrumentLabels = next)
     }
 
+    data class LabelEntry(
+        val v3Name: String,
+        val label: String,
+        val program: Int,
+    )
+
+    /** Existing custom labels with resolved V3 program. */
+    fun labelEntries(): List<LabelEntry> =
+        instrumentLabels.mapNotNull { (v3Name, label) ->
+            val trimmed = label.trim()
+            if (trimmed.isEmpty()) return@mapNotNull null
+            val sound = V3SoundCatalog.findByName(v3Name) ?: return@mapNotNull null
+            LabelEntry(v3Name = sound.name, label = trimmed, program = sound.program)
+        }.sortedBy { it.label.lowercase() }
+
+    /**
+     * Remap every song that uses [oldV3Name]'s program to [newProgram],
+     * and move/rename the custom label onto the new V3 sound.
+     */
+    fun remapLabeledInstrument(
+        oldV3Name: String,
+        newProgram: Int,
+        newLabel: String,
+    ): LiveperfLibrary {
+        val oldSound = V3SoundCatalog.findByName(oldV3Name) ?: return this
+        val newSound = V3SoundCatalog.find(newProgram) ?: return this
+        val oldPc = oldSound.program
+        val label = newLabel.trim()
+
+        val nextLabels = instrumentLabels.toMutableMap()
+        nextLabels.remove(oldSound.name)
+        if (oldSound.name != newSound.name) {
+            // keep other mapping on target unless we assign this label
+        }
+        if (label.isNotEmpty()) {
+            nextLabels[newSound.name] = label
+        } else {
+            nextLabels.remove(newSound.name)
+        }
+
+        val nextSongs = songs.map { song ->
+            if (oldPc !in song.instruments && newProgram !in song.instruments) {
+                song
+            } else {
+                val remapped = song.instruments.map { pc ->
+                    if (pc == oldPc) newProgram else pc
+                }.distinct()
+                song.copy(instruments = remapped)
+            }
+        }
+        return copy(songs = nextSongs, instrumentLabels = nextLabels)
+    }
+
     fun songsInSetlist(setlistId: String): List<Song> {
         val sl = setlist(setlistId) ?: return emptyList()
         return sl.songIds.mapNotNull { song(it) }
@@ -105,6 +158,7 @@ sealed class AppScreen {
     data object Home : AppScreen()
     data object EditHub : AppScreen()
     data object EditGitHubDownload : AppScreen()
+    data object EditLabels : AppScreen()
     data object EditGroups : AppScreen()
     data class EditGroupDetail(val groupId: String) : AppScreen()
     data class EditSetlistDetail(
