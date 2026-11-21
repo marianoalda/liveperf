@@ -1,0 +1,24 @@
+{
+  "groups": [
+    {
+      "name": "Grupo demo",
+      "setlists": [
+        {
+          "name": "Setlist demo",
+          "songs": [
+            {
+              "title": "Ejemplo",
+              "bpm": 120,
+              "key": "C",
+              "instrumentNotes": "Intro piano, estribillo órgano",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic",
+                "Organ 776555678 slow"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

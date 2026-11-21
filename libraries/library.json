@@ -1,0 +1,30 @@
+{
+  "groups": [
+    {
+      "name": "Blandengues",
+      "setlists": [
+        {
+          "name": "Blandengues ensayo",
+          "songs": [
+            {
+              "title": "Voy a pasármelo bien",
+              "bpm": 100,
+              "key": "E",
+              "instrumentNotes": "Hammond",
+              "instruments": [
+                "Organ 776555678 fast"
+              ]
+            },
+            {
+              "title": "Sabor de amor",
+              "bpm": null,
+              "key": "",
+              "instrumentNotes": "",
+              "instruments": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

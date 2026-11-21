@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>liveperf · editor</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>liveperf</h1>
+      <span class="muted">editor local · grupo → setlist → canción → instrumentos</span>
+    </div>
+    <div class="top-actions">
+      <button type="button" id="btn-save" class="primary" disabled>Guardar</button>
+      <span id="status" class="status"></span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel files">
+      <h2>Ficheros</h2>
+      <p class="hint">Se guardan en <code>libraries/</code> del repo.</p>
+      <div class="row">
+        <input id="new-file" type="text" placeholder="nuevo.json" />
+        <button type="button" id="btn-new">Crear</button>
+      </div>
+      <ul id="file-list" class="list"></ul>
+    </aside>
+
+    <section class="panel tree" id="panel-tree">
+      <h2>Grupos</h2>
+      <div class="row">
+        <input id="new-group" type="text" placeholder="Nombre del grupo" />
+        <button type="button" id="btn-add-group">Añadir</button>
+      </div>
+      <ul id="group-list" class="list"></ul>
+    </section>
+
+    <section class="panel detail" id="panel-detail">
+      <p class="empty">Abre o crea un fichero JSON para editar.</p>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

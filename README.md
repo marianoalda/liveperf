@@ -92,6 +92,17 @@ Sin el `pm grant`, verás el aviso de permiso y el resto de la app (MIDI) sigue 
 
 Catálogo de referencia (nombre ↔ program change): [`v3sound-grandpianopro.json`](v3sound-grandpianopro.json) (también embebido en `app/src/main/assets/`).
 
+## Editor web local (PC)
+
+Para editar la biblioteca con más comodidad en el ordenador (misma jerarquía y mismos nombres de instrumento V3):
+
+```bash
+python3 webedit/server.py
+# → http://127.0.0.1:8765/
+```
+
+Los JSON se leen y escriben en [`libraries/`](libraries/) (dentro del repo). Tras editar, puedes hacer commit/push o copiar el fichero al móvil e **Importar JSON** en la app. Atajo: Ctrl+S para guardar.
+
 ## MIDI en directo
 
 1. Conecta el **M-Audio Uno** (u otra interfaz class-compliant) al g75 con **OTG**.
