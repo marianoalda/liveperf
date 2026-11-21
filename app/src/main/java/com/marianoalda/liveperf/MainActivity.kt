@@ -119,6 +119,7 @@ class MainActivity : ComponentActivity() {
                             midiConnected = midiConnected,
                             midiName = midiName,
                             message = message,
+                            versionLabel = BuildConfig.VERSION_LABEL,
                             buildLabel = buildLabel(),
                             onEdit = { screen = AppScreen.EditHub },
                             onLive = { screen = AppScreen.LivePickGroup },
@@ -422,12 +423,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun buildLabel(): String {
-        val name = BuildConfig.VERSION_NAME
-        return if (name.isBlank()) {
-            getString(R.string.build_label, BuildConfig.BUILD_TIME)
-        } else {
-            name
-        }
-    }
+    private fun buildLabel(): String =
+        getString(R.string.build_label, BuildConfig.BUILD_TIME)
 }

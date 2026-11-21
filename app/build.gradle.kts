@@ -11,6 +11,29 @@ plugins {
 val buildTimeStamp: String =
     SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
 
+fun gitCommand(vararg args: String): String? = try {
+    val process = ProcessBuilder("git", *args)
+        .directory(rootProject.projectDir)
+        .redirectErrorStream(true)
+        .start()
+    val output = process.inputStream.bufferedReader().readText().trim()
+    if (process.waitFor() == 0 && output.isNotEmpty()) output else null
+} catch (_: Exception) {
+    null
+}
+
+/** Display form: vX.Y.Z, or vX.Y.Z-snapshot if HEAD is past the latest tag. */
+fun resolveAppVersionLabel(): String {
+    fun withV(tag: String) = if (tag.startsWith("v")) tag else "v$tag"
+    val exact = gitCommand("describe", "--tags", "--exact-match", "HEAD")
+    if (exact != null) return withV(exact)
+    val latest = gitCommand("describe", "--tags", "--abbrev=0") ?: return "v0.0.0-snapshot"
+    return "${withV(latest)}-snapshot"
+}
+
+val appVersionLabel: String = resolveAppVersionLabel()
+val appVersionName: String = appVersionLabel.removePrefix("v")
+
 android {
     namespace = "com.marianoalda.liveperf"
     compileSdk = 35
@@ -21,8 +44,9 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = ""
+        versionName = appVersionName
         buildConfigField("String", "BUILD_TIME", "\"$buildTimeStamp\"")
+        buildConfigField("String", "VERSION_LABEL", "\"$appVersionLabel\"")
     }
 
     buildTypes {

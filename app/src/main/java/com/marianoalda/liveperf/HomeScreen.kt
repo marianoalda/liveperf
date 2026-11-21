@@ -27,6 +27,7 @@ fun HomeScreen(
     midiConnected: Boolean,
     midiName: String?,
     message: String,
+    versionLabel: String,
     buildLabel: String,
     onEdit: () -> Unit,
     onLive: () -> Unit,
@@ -40,12 +41,24 @@ fun HomeScreen(
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column {
-            Text(
-                text = stringResource(R.string.title),
-                color = Accent,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.title),
+                    color = Accent,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = versionLabel,
+                    color = Soft.copy(alpha = 0.75f),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 3.dp),
+                )
+            }
             Text(
                 text = if (midiConnected) {
                     stringResource(R.string.midi_ready, midiName ?: "USB")
