@@ -227,6 +227,27 @@ button.small { padding: 0.25rem 0.45rem; font-size: 0.8rem; }
 .picker .item:hover { background: rgba(126, 200, 227, 0.12); }
 .picker .item .pc { color: var(--muted); font-size: 0.75rem; margin-left: 0.35rem; }
 
+.instr-card {
+  background: var(--panel-dim);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
+.instr-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.instr-head .pc {
+  color: var(--accent);
+  font-size: 0.85rem;
+  margin-left: auto;
+}
+
 .empty { color: var(--muted); }
 
 .toolbar {

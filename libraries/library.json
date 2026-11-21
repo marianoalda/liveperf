@@ -17,14 +17,165 @@
             },
             {
               "title": "Sabor de amor",
-              "bpm": null,
-              "key": "",
+              "bpm": 134,
+              "key": "A",
+              "instrumentNotes": "Piano",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "El ritmo del garaje",
+              "bpm": 141,
+              "key": "G",
+              "instrumentNotes": "Piano",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Mucho mejor",
+              "bpm": 129,
+              "key": "G",
+              "instrumentNotes": "Pendiente",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Devuélveme la vida / Chiquilla",
+              "bpm": 167,
+              "key": "A > F",
               "instrumentNotes": "",
-              "instruments": []
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Cien gaviotas",
+              "bpm": 136,
+              "key": "A Em D",
+              "instrumentNotes": "",
+              "instruments": [
+                "Organ 776555678 slow"
+              ]
+            },
+            {
+              "title": "Cadillac solitario",
+              "bpm": 130,
+              "key": "D",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Devuélveme a mi chica",
+              "bpm": 167,
+              "key": "Em",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Mi gran noche",
+              "bpm": 138,
+              "key": "Bm",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Como Camarón",
+              "bpm": 140,
+              "key": "Am",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "No puedo vivir sin ti",
+              "bpm": 128,
+              "key": "C",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "A quién le importa",
+              "bpm": 130,
+              "key": "Em",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Insurrección",
+              "bpm": 140,
+              "key": "G",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Un beso y una flor",
+              "bpm": 84,
+              "key": "D",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "No dudaría",
+              "bpm": 140,
+              "key": "C",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "Salta",
+              "bpm": 129,
+              "key": "Bm",
+              "instrumentNotes": "",
+              "instruments": [
+                "Organ 776555678 fast"
+              ]
+            },
+            {
+              "title": "Rompeolas",
+              "bpm": 120,
+              "key": "G",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
+            },
+            {
+              "title": "El fin del mundo",
+              "bpm": 127,
+              "key": "E",
+              "instrumentNotes": "",
+              "instruments": [
+                "Grand Piano BÖS 270 Classic"
+              ]
             }
           ]
         }
       ]
     }
-  ]
+  ],
+  "instrumentLabels": {
+    "Grand Piano BÖS 270 Classic": "Piano",
+    "Organ 776555678 slow": "Órgano",
+    "Organ 776555678 fast": "Hammond"
+  }
 }

@@ -1,7 +1,9 @@
 package com.marianoalda.liveperf
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,6 +80,7 @@ fun LivePickSetlistScreen(
     })
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LiveSongScreen(
     library: LiveperfLibrary,
@@ -86,6 +89,7 @@ fun LiveSongScreen(
     onBack: () -> Unit,
     onSongIndex: (Int) -> Unit,
     onProgramChange: (Int) -> Unit,
+    onSave: (LiveperfLibrary) -> Unit,
 ) {
     val songs = library.songsInSetlist(setlistId)
     if (songs.isEmpty()) {
@@ -103,6 +107,7 @@ fun LiveSongScreen(
     var pendingNav by remember { mutableStateOf<NavPending?>(null) }
     var pendingAt by remember { mutableLongStateOf(0L) }
     var hint by remember { mutableStateOf("") }
+    var editingProgram by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(song.id) {
         val first = song.instruments.firstOrNull()
@@ -192,6 +197,11 @@ fun LiveSongScreen(
                     .fillMaxHeight(),
             ) {
                 Text("Instrumentos", color = Accent, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Toque = cambio · mantener = etiqueta",
+                    color = Soft.copy(alpha = 0.65f),
+                    fontSize = 12.sp,
+                )
                 Spacer(Modifier.height(6.dp))
                 if (song.instruments.isEmpty()) {
                     Text("Sin instrumentos en la canción", color = Soft)
@@ -207,18 +217,21 @@ fun LiveSongScreen(
                                         if (active) AccentHot else Panel,
                                         RoundedCornerShape(12.dp),
                                     )
-                                    .clickable {
-                                        activeProgram = pc
-                                        onProgramChange(pc)
-                                        pendingNav = null
-                                        hint = ""
-                                    }
+                                    .combinedClickable(
+                                        onClick = {
+                                            activeProgram = pc
+                                            onProgramChange(pc)
+                                            pendingNav = null
+                                            hint = ""
+                                        },
+                                        onLongClick = { editingProgram = pc },
+                                    )
                                     .padding(10.dp),
                                 contentAlignment = Alignment.CenterStart,
                             ) {
                                 Column {
                                     Text(
-                                        V3SoundCatalog.find(pc)?.name ?: "PC $pc",
+                                        library.buttonTitle(pc),
                                         color = if (active) Navy else Soft,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
@@ -234,6 +247,20 @@ fun LiveSongScreen(
                             }
                         }
                     }
+                }
+
+                editingProgram?.let { pc ->
+                    LabelEditDialog(
+                        program = pc,
+                        currentLabel = library.customLabel(pc).orEmpty(),
+                        v3Name = library.v3Name(pc),
+                        onDismiss = { editingProgram = null },
+                        onConfirm = { label ->
+                            val name = V3SoundCatalog.find(pc)?.name
+                            if (name != null) onSave(library.withInstrumentLabel(name, label))
+                            editingProgram = null
+                        },
+                    )
                 }
 
                 Spacer(Modifier.weight(1f))

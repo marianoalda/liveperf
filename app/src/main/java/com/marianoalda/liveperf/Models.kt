@@ -31,10 +31,33 @@ data class LiveperfLibrary(
     val groups: List<Group> = emptyList(),
     val setlists: List<Setlist> = emptyList(),
     val songs: List<Song> = emptyList(),
+    /** Custom button labels keyed by V3 documentation name. */
+    val instrumentLabels: Map<String, String> = emptyMap(),
 ) {
     fun song(id: String): Song? = songs.firstOrNull { it.id == id }
     fun setlist(id: String): Setlist? = setlists.firstOrNull { it.id == id }
     fun group(id: String): Group? = groups.firstOrNull { it.id == id }
+
+    fun v3Name(program: Int): String =
+        V3SoundCatalog.find(program)?.name ?: "PC $program"
+
+    fun customLabel(program: Int): String? {
+        val name = V3SoundCatalog.find(program)?.name ?: return null
+        return instrumentLabels[name]?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    /** Button title: custom label, or "(?) " + V3 name when missing. */
+    fun buttonTitle(program: Int): String {
+        val custom = customLabel(program)
+        return if (custom != null) custom else "(?) ${v3Name(program)}"
+    }
+
+    fun withInstrumentLabel(v3Name: String, label: String): LiveperfLibrary {
+        val trimmed = label.trim()
+        val next = instrumentLabels.toMutableMap()
+        if (trimmed.isEmpty()) next.remove(v3Name) else next[v3Name] = trimmed
+        return copy(instrumentLabels = next)
+    }
 
     fun songsInSetlist(setlistId: String): List<Song> {
         val sl = setlist(setlistId) ?: return emptyList()
@@ -81,6 +104,7 @@ data class LiveperfLibrary(
 sealed class AppScreen {
     data object Home : AppScreen()
     data object EditHub : AppScreen()
+    data object EditGitHubDownload : AppScreen()
     data object EditGroups : AppScreen()
     data class EditGroupDetail(val groupId: String) : AppScreen()
     data class EditSetlistDetail(

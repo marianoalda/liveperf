@@ -1,7 +1,9 @@
 package com.marianoalda.liveperf
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,8 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.UUID
+import kotlin.concurrent.thread
 
 @Composable
 fun EditHubScreen(
@@ -33,6 +39,7 @@ fun EditHubScreen(
     onSongs: () -> Unit,
     onImportJson: () -> Unit,
     onExportJson: () -> Unit,
+    onDownloadGithub: () -> Unit,
 ) {
     ScreenScaffold(title = "Modo edición", onBack = onBack, content = {
         Column(
@@ -55,6 +62,12 @@ fun EditHubScreen(
                 compact = true,
             )
             ListRow(
+                "Descargar desde GitHub",
+                "libraries/ del repo → library.json local del teléfono",
+                onClick = onDownloadGithub,
+                compact = true,
+            )
+            ListRow(
                 "Importar JSON",
                 "Reemplaza la biblioteca desde un fichero del móvil",
                 onClick = onImportJson,
@@ -66,6 +79,128 @@ fun EditHubScreen(
                 onClick = onExportJson,
                 compact = true,
             )
+        }
+    })
+}
+
+@Composable
+fun OverwriteLocalLibraryDialog(
+    title: String,
+    detail: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Text(
+                "Se sobrescribirá el fichero local del teléfono ($detail). " +
+                    "La biblioteca actual de la app se reemplazará.",
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("Sobrescribir") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        },
+    )
+}
+
+@Composable
+fun EditGitHubDownloadScreen(
+    defaultFileName: String,
+    onBack: () -> Unit,
+    onDownloaded: (GitHubLibraryFile, String) -> Unit,
+) {
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var files by remember { mutableStateOf<List<GitHubLibraryFile>>(emptyList()) }
+    var pending by remember { mutableStateOf<GitHubLibraryFile?>(null) }
+    var downloading by remember { mutableStateOf(false) }
+
+    fun refresh() {
+        loading = true
+        error = null
+        thread {
+            try {
+                val list = GitHubLibraries.listJsonFiles()
+                // post to main via Compose state — Activity will recompose if we set on main
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    files = list
+                    loading = false
+                    if (list.isEmpty()) error = "No hay JSON en libraries/"
+                }
+            } catch (e: Exception) {
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    loading = false
+                    error = e.message ?: e.javaClass.simpleName
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) { refresh() }
+
+    pending?.let { file ->
+        OverwriteLocalLibraryDialog(
+            title = "Descargar ${file.name}",
+            detail = defaultFileName,
+            onDismiss = { if (!downloading) pending = null },
+            onConfirm = {
+                downloading = true
+                thread {
+                    try {
+                        val text = GitHubLibraries.download(file)
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            downloading = false
+                            pending = null
+                            onDownloaded(file, text)
+                        }
+                    } catch (e: Exception) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            downloading = false
+                            pending = null
+                            error = "Descarga fallida: ${e.message ?: e.javaClass.simpleName}"
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    ScreenScaffold(title = "GitHub · libraries/", onBack = onBack, content = {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                "Elige un JSON del repositorio. Se guardará como $defaultFileName en el almacenamiento interno de la app y reemplazará la biblioteca local.",
+                color = Soft.copy(alpha = 0.75f),
+                fontSize = 13.sp,
+            )
+            when {
+                loading -> Text("Cargando lista…", color = Soft)
+                downloading -> Text("Descargando…", color = Accent)
+                error != null -> {
+                    Text(error!!, color = Danger)
+                    PrimaryButton("Reintentar") { refresh() }
+                }
+                else -> {
+                    files.forEach { f ->
+                        ListRow(
+                            title = f.name,
+                            subtitle = if (f.size > 0) "${f.size} B" else null,
+                            onClick = { pending = f },
+                            compact = true,
+                        )
+                    }
+                }
+            }
         }
     })
 }
@@ -371,6 +506,7 @@ fun EditSongsScreen(
     })
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EditSongDetailScreen(
     library: LiveperfLibrary,
@@ -386,6 +522,7 @@ fun EditSongDetailScreen(
     var key by remember(song.id) { mutableStateOf(song.key) }
     var notes by remember(song.id) { mutableStateOf(song.instrumentNotes) }
     var filter by remember { mutableStateOf("") }
+    var editingProgram by remember { mutableStateOf<Int?>(null) }
 
     fun persist(instruments: List<Int> = library.song(songId)?.instruments ?: song.instruments) {
         onSave(
@@ -410,6 +547,22 @@ fun EditSongDetailScreen(
         songId = songId,
     ).ifBlank { song.title }
 
+    editingProgram?.let { pc ->
+        LabelEditDialog(
+            program = pc,
+            currentLabel = library.customLabel(pc).orEmpty(),
+            v3Name = library.v3Name(pc),
+            onDismiss = { editingProgram = null },
+            onConfirm = { label ->
+                val name = V3SoundCatalog.find(pc)?.name
+                if (name != null) {
+                    onSave(library.withInstrumentLabel(name, label))
+                }
+                editingProgram = null
+            },
+        )
+    }
+
     ScreenScaffold(title = song.title, onBack = onBack, content = {
         Column(
             modifier = Modifier
@@ -426,15 +579,31 @@ fun EditSongDetailScreen(
             PrimaryButton("Guardar datos") { persist() }
 
             Text("Instrumentos V3 (canal 1)", color = Accent, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Mantén pulsado para editar la etiqueta propia del botón.",
+                color = Soft.copy(alpha = 0.7f),
+                fontSize = 13.sp,
+            )
             current.instruments.forEach { pc ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Panel, RoundedCornerShape(8.dp))
+                        .combinedClickable(
+                            onClick = {},
+                            onLongClick = { editingProgram = pc },
+                        )
                         .padding(8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(V3SoundCatalog.label(pc), color = Soft, modifier = Modifier.weight(1f))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(library.buttonTitle(pc), color = Soft, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "PC $pc · ${library.v3Name(pc)}",
+                            color = Soft.copy(alpha = 0.65f),
+                            fontSize = 12.sp,
+                        )
+                    }
                     PrimaryButton("Quitar") {
                         persist(current.instruments.filterNot { it == pc })
                     }

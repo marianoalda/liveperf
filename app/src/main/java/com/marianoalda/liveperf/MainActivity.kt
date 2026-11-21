@@ -30,11 +30,19 @@ class MainActivity : ComponentActivity() {
     private var message by mutableStateOf("")
     private var library by mutableStateOf(LiveperfLibrary())
     private var screen by mutableStateOf<AppScreen>(AppScreen.Home)
+    private var pendingImportUri by mutableStateOf<Uri?>(null)
+    private var pendingPersist by mutableStateOf<LiveperfLibrary?>(null)
+    private var editOverwriteConfirmed = false
 
     private val importJsonLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
-        if (uri != null) importLibraryFromUri(uri)
+        if (uri == null) return@registerForActivityResult
+        if (store.hasLocalData()) {
+            pendingImportUri = uri
+        } else {
+            importLibraryFromUri(uri)
+        }
     }
 
     private val exportJsonLauncher = registerForActivityResult(
@@ -78,6 +86,33 @@ class MainActivity : ComponentActivity() {
                     BackHandler(enabled = screen !is AppScreen.Home) {
                         navigateBack()
                     }
+
+                    pendingImportUri?.let { uri ->
+                        OverwriteLocalLibraryDialog(
+                            title = "Importar JSON",
+                            detail = LibraryStore.DEFAULT_FILE_NAME,
+                            onDismiss = { pendingImportUri = null },
+                            onConfirm = {
+                                pendingImportUri = null
+                                importLibraryFromUri(uri)
+                            },
+                        )
+                    }
+
+                    pendingPersist?.let { lib ->
+                        OverwriteLocalLibraryDialog(
+                            title = "Guardar cambios",
+                            detail = LibraryStore.DEFAULT_FILE_NAME,
+                            onDismiss = { pendingPersist = null },
+                            onConfirm = {
+                                editOverwriteConfirmed = true
+                                val toSave = pendingPersist
+                                pendingPersist = null
+                                if (toSave != null) persistNow(toSave)
+                            },
+                        )
+                    }
+
                     when (val s = screen) {
                         AppScreen.Home -> HomeScreen(
                             airplaneOn = airplaneOn,
@@ -99,6 +134,17 @@ class MainActivity : ComponentActivity() {
                             },
                             onExportJson = {
                                 exportJsonLauncher.launch("liveperf-library.json")
+                            },
+                            onDownloadGithub = {
+                                screen = AppScreen.EditGitHubDownload
+                            },
+                        )
+
+                        AppScreen.EditGitHubDownload -> EditGitHubDownloadScreen(
+                            defaultFileName = LibraryStore.DEFAULT_FILE_NAME,
+                            onBack = { screen = AppScreen.EditHub },
+                            onDownloaded = { file, text ->
+                                applyDownloadedJson(file.name, text)
                             },
                         )
 
@@ -203,6 +249,7 @@ class MainActivity : ComponentActivity() {
                             onProgramChange = { pc ->
                                 sendPc(pc)
                             },
+                            onSave = ::persist,
                         )
                     }
                 }
@@ -217,8 +264,9 @@ class MainActivity : ComponentActivity() {
                     message = "No se pudo leer el fichero"
                     return
                 }
-            val result = store.importHierarchy(text)
-            persist(result.library)
+            val result = store.replaceFromJsonText(text)
+            editOverwriteConfirmed = true
+            library = result.library
             message = if (result.warnings.isEmpty()) {
                 "Biblioteca importada (${result.library.groups.size} grupos, " +
                     "${result.library.setlists.size} setlists, ${result.library.songs.size} canciones)"
@@ -229,6 +277,24 @@ class MainActivity : ComponentActivity() {
             screen = AppScreen.EditHub
         } catch (e: Exception) {
             message = "Error al importar: ${e.message ?: e.javaClass.simpleName}"
+        }
+    }
+
+    private fun applyDownloadedJson(name: String, text: String) {
+        try {
+            val result = store.replaceFromJsonText(text)
+            editOverwriteConfirmed = true
+            library = result.library
+            message = if (result.warnings.isEmpty()) {
+                "Descargado $name → ${LibraryStore.DEFAULT_FILE_NAME} " +
+                    "(${result.library.groups.size} grupos, ${result.library.songs.size} canciones)"
+            } else {
+                "Descargado $name con avisos: ${result.warnings.take(3).joinToString("; ")}" +
+                    if (result.warnings.size > 3) "…" else ""
+            }
+            screen = AppScreen.EditHub
+        } catch (e: Exception) {
+            message = "Error al aplicar descarga: ${e.message ?: e.javaClass.simpleName}"
         }
     }
 
@@ -248,6 +314,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun persist(lib: LiveperfLibrary) {
+        if (store.defaultFile.exists() && !editOverwriteConfirmed) {
+            pendingPersist = lib
+            return
+        }
+        persistNow(lib)
+    }
+
+    private fun persistNow(lib: LiveperfLibrary) {
         library = lib
         store.save(lib)
     }
@@ -256,6 +330,7 @@ class MainActivity : ComponentActivity() {
         screen = when (val s = screen) {
             AppScreen.Home -> s
             AppScreen.EditHub, AppScreen.LivePickGroup -> AppScreen.Home
+            AppScreen.EditGitHubDownload -> AppScreen.EditHub
             AppScreen.EditGroups, AppScreen.EditSongs -> AppScreen.EditHub
             is AppScreen.EditGroupDetail -> AppScreen.EditGroups
             is AppScreen.EditSetlistDetail -> AppScreen.EditGroupDetail(s.parentGroupId)

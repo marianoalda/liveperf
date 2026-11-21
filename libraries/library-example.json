@@ -12,13 +12,23 @@
               "key": "C",
               "instrumentNotes": "Intro piano, estribillo órgano",
               "instruments": [
-                "Grand Piano BÖS 270 Classic",
-                "Organ 776555678 slow"
+                {
+                  "name": "Grand Piano BÖS 270 Classic",
+                  "label": "Piano"
+                },
+                {
+                  "name": "Organ 776555678 slow",
+                  "label": "Órgano"
+                }
               ]
             }
           ]
         }
       ]
     }
-  ]
+  ],
+  "instrumentLabels": {
+    "Grand Piano BÖS 270 Classic": "Piano",
+    "Organ 776555678 slow": "Órgano"
+  }
 }

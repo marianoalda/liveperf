@@ -35,24 +35,50 @@
   }
 
   function emptyLibrary() {
-    return { groups: [] };
+    return { groups: [], instrumentLabels: {} };
   }
 
   function ensureShape(lib) {
     if (!lib || typeof lib !== "object") return emptyLibrary();
     if (!Array.isArray(lib.groups)) lib.groups = [];
+    if (!lib.instrumentLabels || typeof lib.instrumentLabels !== "object") {
+      lib.instrumentLabels = {};
+    }
+    const normalizeInstr = (raw) => {
+      if (raw && typeof raw === "object") {
+        const name = raw.name || raw.instrument || "";
+        const label = (raw.label || "").trim();
+        if (name && label) lib.instrumentLabels[name] = label;
+        return name;
+      }
+      return String(raw || "");
+    };
     lib.groups.forEach((g) => {
       if (!Array.isArray(g.setlists)) g.setlists = [];
       g.setlists.forEach((sl) => {
         if (!Array.isArray(sl.songs)) sl.songs = [];
         sl.songs.forEach((song) => {
           if (!Array.isArray(song.instruments)) song.instruments = [];
+          song.instruments = song.instruments.map(normalizeInstr).filter(Boolean);
           if (song.instrumentNotes == null) song.instrumentNotes = "";
           if (song.key == null) song.key = "";
         });
       });
     });
     return lib;
+  }
+
+  function displayLabel(v3Name) {
+    const custom = (state.library.instrumentLabels[v3Name] || "").trim();
+    return custom || `(?) ${v3Name}`;
+  }
+
+  function setLabel(v3Name, label) {
+    const trimmed = (label || "").trim();
+    if (!state.library.instrumentLabels) state.library.instrumentLabels = {};
+    if (trimmed) state.library.instrumentLabels[v3Name] = trimmed;
+    else delete state.library.instrumentLabels[v3Name];
+    markDirty();
   }
 
   async function loadCatalog() {
@@ -236,8 +262,7 @@
           .map(
             (sl, i) => `
           <li data-i="${i}">
-            <span class="label">${escapeHtml(sl.name || "(sin nombre)")}
-span class="sub">${(sl.songs || []).length} canciones</span></span>
+            <span class="label">${escapeHtml(sl.name || "(sin nombre)")}<span class="sub">${(sl.songs || []).length} canciones</span></span>
             <button type="button" class="danger small" data-del="${i}">×</button>
           </li>`
           )
@@ -310,8 +335,7 @@ span class="sub">${(sl.songs || []).length} canciones</span></span>
           .map(
             (song, i) => `
           <li data-i="${i}">
-            <span class="label">${i + 1}. ${escapeHtml(song.title || "(sin título)")}
-span class="sub">${songMeta(song)}</span></span>
+            <span class="label">${i + 1}. ${escapeHtml(song.title || "(sin título)")}<span class="sub">${escapeHtml(songMeta(song))}</span></span>
             <button type="button" class="small" data-up="${i}">↑</button>
             <button type="button" class="small" data-down="${i}">↓</button>
             <button type="button" class="danger small" data-del="${i}">×</button>
@@ -404,6 +428,10 @@ span class="sub">${songMeta(song)}</span></span>
         String(sound.program) === q
       );
     });
+    const pcOf = (name) => {
+      const s = state.catalog.find((x) => x.name === name);
+      return s ? s.program : "?";
+    };
     return `
       <div class="crumb">${escapeHtml(g.name)} › ${escapeHtml(sl.name)} › ${escapeHtml(song.title || "Canción")}</div>
       <div class="toolbar">
@@ -430,18 +458,33 @@ span class="sub">${songMeta(song)}</span></span>
       <div class="toolbar">
         <button type="button" id="ed-song-save" class="primary">Guardar datos de la canción</button>
       </div>
-      <div class="section-title">Instrumentos V3 (por nombre)</div>
-      <div class="chip-row" id="ed-instr-chips">
+      <div class="section-title">Instrumentos V3 + etiqueta propia (botón)</div>
+      <p class="hint">La etiqueta propia es la que se ve en el móvil. Sin ella aparece «(?)» + nombre V3.</p>
+      <div id="ed-instr-list">
         ${(song.instruments || [])
-          .map(
-            (name, i) => `
-          <span class="chip">${escapeHtml(name)}
-            <button type="button" data-rm="${i}" title="Quitar">×</button>
-          </span>`
-          )
+          .map((name, i) => {
+            const custom = (state.library.instrumentLabels[name] || "").trim();
+            return `
+          <div class="instr-card" data-i="${i}">
+            <div class="instr-head">
+              <strong>${escapeHtml(displayLabel(name))}</strong>
+              <span class="pc">PC ${pcOf(name)}</span>
+              <button type="button" class="danger small" data-rm="${i}" title="Quitar">×</button>
+            </div>
+            <div class="field">
+              <label>Nombre V3</label>
+              <input type="text" value="${escapeAttr(name)}" disabled />
+            </div>
+            <div class="field">
+              <label>Etiqueta propia (botón)</label>
+              <input type="text" class="instr-label" data-name="${escapeAttr(name)}"
+                value="${escapeAttr(custom)}" placeholder="ej. Piano, Órgano…" />
+            </div>
+          </div>`;
+          })
           .join("") || `<span class="hint">Ninguno aún</span>`}
       </div>
-      <div class="field">
+      <div class="field" style="margin-top:0.75rem">
         <label>Filtrar por nombre (sin distinguir mayúsculas)</label>
         <input type="text" id="ed-instr-filter" value="${escapeAttr(state.instrumentFilter)}" placeholder="piano, organ, pad…" />
       </div>
@@ -475,11 +518,18 @@ span class="sub">${songMeta(song)}</span></span>
       setStatus("Datos de canción actualizados (recuerda Guardar el fichero)", "ok");
       renderAll();
     };
-    document.querySelectorAll("#ed-instr-chips [data-rm]").forEach((btn) => {
+    document.querySelectorAll("#ed-instr-list [data-rm]").forEach((btn) => {
       btn.onclick = () => {
         const i = Number(btn.dataset.rm);
         song.instruments.splice(i, 1);
         markDirty();
+        renderDetail();
+      };
+    });
+    document.querySelectorAll("#ed-instr-list .instr-label").forEach((input) => {
+      input.onchange = () => setLabel(input.dataset.name, input.value);
+      input.onblur = () => {
+        setLabel(input.dataset.name, input.value);
         renderDetail();
       };
     });

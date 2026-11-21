@@ -12,6 +12,8 @@ data class LibraryImportResult(
 
 class LibraryStore(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    // Default on-device JSON (mirrors repo libraries/ JSON files).
+    val defaultFile = java.io.File(context.filesDir, DEFAULT_FILE_NAME)
 
     fun load(): LiveperfLibrary {
         val raw = prefs.getString(KEY, null) ?: return seedLibrary().also { save(it) }
@@ -24,6 +26,19 @@ class LibraryStore(context: Context) {
 
     fun save(library: LiveperfLibrary) {
         prefs.edit().putString(KEY, toStorageJson(library).toString()).apply()
+        runCatching {
+            defaultFile.writeText(exportHierarchy(library), Charsets.UTF_8)
+        }
+    }
+
+    fun hasLocalData(): Boolean =
+        prefs.contains(KEY) || defaultFile.exists()
+
+    /** Import JSON text into prefs + default local file. */
+    fun replaceFromJsonText(jsonText: String): LibraryImportResult {
+        val result = importHierarchy(jsonText)
+        save(result.library)
+        return result
     }
 
     /** Hierarchical import: groups → setlists → songs; instruments by V3 name (or PC number). */
@@ -34,20 +49,41 @@ class LibraryStore(context: Context) {
         val setlists = linkedMapOf<String, Setlist>()
         val groups = mutableListOf<Group>()
 
+        val labels = linkedMapOf<String, String>()
+        fun readLabels(obj: JSONObject) {
+            val map = obj.optJSONObject("instrumentLabels") ?: return
+            map.keys().forEach { key ->
+                val value = map.optString(key, "").trim()
+                if (value.isNotEmpty()) labels[key] = value
+            }
+        }
+        readLabels(root)
+
         fun resolveInstruments(title: String, arr: JSONArray?): List<Int> {
             if (arr == null) return emptyList()
             val out = mutableListOf<Int>()
             for (i in 0 until arr.length()) {
                 val raw = arr.get(i)
-                val token = when (raw) {
-                    is Number -> raw.toInt().toString()
-                    else -> raw.toString()
+                val token: String
+                var inlineLabel: String? = null
+                when (raw) {
+                    is Number -> token = raw.toInt().toString()
+                    is JSONObject -> {
+                        token = raw.optString("name").ifBlank {
+                            raw.optString("instrument")
+                        }.ifBlank {
+                            raw.opt("program")?.toString().orEmpty()
+                        }
+                        inlineLabel = raw.optString("label").trim().takeIf { it.isNotEmpty() }
+                    }
+                    else -> token = raw.toString()
                 }
                 val sound = V3SoundCatalog.findByName(token)
                 if (sound == null) {
                     warnings.add("Canción \"$title\": instrumento desconocido \"$token\"")
                 } else if (sound.program !in out) {
                     out.add(sound.program)
+                    if (inlineLabel != null) labels[sound.name] = inlineLabel
                 }
             }
             return out
@@ -137,6 +173,7 @@ class LibraryStore(context: Context) {
             groups = groups,
             setlists = setlists.values.toList(),
             songs = songs.values.toList(),
+            instrumentLabels = labels,
         )
         return LibraryImportResult(library = library, warnings = warnings)
     }
@@ -149,7 +186,13 @@ class LibraryStore(context: Context) {
         fun songObject(s: Song): JSONObject {
             val names = JSONArray()
             s.instruments.forEach { pc ->
-                names.put(V3SoundCatalog.find(pc)?.name ?: pc.toString())
+                val v3 = V3SoundCatalog.find(pc)?.name ?: pc.toString()
+                val label = lib.instrumentLabels[v3]?.trim().orEmpty()
+                if (label.isNotEmpty()) {
+                    names.put(JSONObject().put("name", v3).put("label", label))
+                } else {
+                    names.put(v3)
+                }
             }
             return JSONObject()
                 .put("id", s.id)
@@ -188,6 +231,13 @@ class LibraryStore(context: Context) {
         }
 
         val root = JSONObject().put("groups", groupsArr)
+        if (lib.instrumentLabels.isNotEmpty()) {
+            val labelsObj = JSONObject()
+            lib.instrumentLabels.entries.sortedBy { it.key }.forEach { (k, v) ->
+                if (v.isNotBlank()) labelsObj.put(k, v)
+            }
+            root.put("instrumentLabels", labelsObj)
+        }
 
         val orphanSetlists = lib.setlists.filter { it.id !in nestedSetlistIds }
         if (orphanSetlists.isNotEmpty()) {
@@ -241,6 +291,10 @@ class LibraryStore(context: Context) {
             groups = listOf(group),
             setlists = listOf(setlist),
             songs = listOf(song),
+            instrumentLabels = mapOf(
+                "Grand Piano BÖS 270 Classic" to "Piano",
+                "Organ 776555678 slow" to "Órgano",
+            ),
         )
     }
 
@@ -279,10 +333,15 @@ class LibraryStore(context: Context) {
                 )
             }
         }
+        val labelsObj = JSONObject()
+        lib.instrumentLabels.forEach { (k, v) ->
+            if (v.isNotBlank()) labelsObj.put(k, v)
+        }
         return JSONObject()
             .put("groups", groupsArr())
             .put("setlists", setlistsArr())
             .put("songs", songsArr())
+            .put("instrumentLabels", labelsObj)
     }
 
     private fun fromStorageJson(obj: JSONObject): LiveperfLibrary {
@@ -302,6 +361,12 @@ class LibraryStore(context: Context) {
                         val raw = ia.get(j)
                         when (raw) {
                             is Number -> add(raw.toInt())
+                            is JSONObject -> {
+                                val token = raw.optString("name").ifBlank {
+                                    raw.opt("program")?.toString().orEmpty()
+                                }
+                                V3SoundCatalog.findByName(token)?.program?.let { add(it) }
+                            }
                             else -> V3SoundCatalog.findByName(raw.toString())?.program?.let { add(it) }
                         }
                     }
@@ -340,11 +405,38 @@ class LibraryStore(context: Context) {
                 add(Group(id = o.getString("id"), name = o.getString("name"), setlistIds = ids))
             }
         }
-        return LiveperfLibrary(groups = groups, setlists = setlists, songs = songs)
+        val labels = linkedMapOf<String, String>()
+        obj.optJSONObject("instrumentLabels")?.let { map ->
+            map.keys().forEach { key ->
+                val value = map.optString(key, "").trim()
+                if (value.isNotEmpty()) labels[key] = value
+            }
+        }
+        // Also accept labels embedded in song instrument objects (storage edge case)
+        obj.optJSONArray("songs")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val ia = arr.getJSONObject(i).optJSONArray("instruments") ?: continue
+                for (j in 0 until ia.length()) {
+                    val raw = ia.opt(j)
+                    if (raw is JSONObject) {
+                        val name = raw.optString("name")
+                        val label = raw.optString("label").trim()
+                        if (name.isNotBlank() && label.isNotEmpty()) labels[name] = label
+                    }
+                }
+            }
+        }
+        return LiveperfLibrary(
+            groups = groups,
+            setlists = setlists,
+            songs = songs,
+            instrumentLabels = labels,
+        )
     }
 
     companion object {
         private const val PREFS = "liveperf_library"
         private const val KEY = "library_json"
+        const val DEFAULT_FILE_NAME = "library.json"
     }
 }

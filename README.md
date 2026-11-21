@@ -1,67 +1,125 @@
 # liveperf
 
-Prototipo Android (sideload) para actuaciones en directo: jerarquía **grupo → setlist → canción → instrumentos** (catálogo V3Sound Grand Piano Pro, MSB 0), modo edición y modo directo, pantalla horizontal fija, modo avión controlado por la app, y Program Change MIDI por USB (canal 1; p. ej. M-Audio Uno → V3Sound).
+Aplicación Android (instalación manual, no Play Store) para actuaciones en directo con módulo **V3Sound Grand Piano Pro**: setlists, notas de canción y cambios de programa MIDI por USB (canal 1).
 
-No está en Play Store. Build debug firmado con el keystore local del SDK.
+Incluye también un **editor web local** en Python para mantener la biblioteca JSON en el PC y publicarla en este repositorio (carpeta `libraries/`), de donde el móvil puede descargarla.
 
-## Requisitos
+**Repositorio:** https://github.com/marianoalda/liveperf (público)
+
+---
+
+## Contenido del proyecto
+
+| Ruta | Descripción |
+|------|-------------|
+| `app/` | App Android (Kotlin + Jetpack Compose) |
+| `webedit/` | Servidor web local de edición |
+| `libraries/` | Ficheros JSON de repertorio (editables en PC; descargables en el móvil) |
+| `examples/` | Ejemplo mínimo de biblioteca |
+| `v3sound-grandpianopro.json` | Catálogo V3 (nombre ↔ program change, bank MSB 0) |
+
+---
+
+## App Android
+
+### Qué hace
+
+- **Jerarquía:** grupo → setlist → canción → instrumentos V3.
+- **Modo edición:** define el árbol; las setlists/canciones se crean ya ligadas al padre.
+- **Modo directo:** elige grupo y setlist; avanza/retrocede canciones; cambia instrumentos con un toque.
+- **MIDI USB:** Program Change en canal 1 hacia la interfaz (p. ej. M-Audio Uno → DIN IN del V3).
+- **Etiqueta propia:** texto corto del botón en directo. Sin ella se muestra `(?)` + nombre V3. Mantén pulsado el instrumento para editarla.
+- **Descarga GitHub / importar / exportar JSON** con aviso si se va a sobrescribir la biblioteca local (`library.json` interno de la app).
+
+### Requisitos
 
 - JDK 17+
-- Android SDK (`platforms/android-35`, `build-tools/35.0.1`, `platform-tools`)
-- Teléfono de prueba: Motorola **moto g75 5G** (u otro con USB OTG + MIDI)
+- Android SDK (`platforms/android-35`, `build-tools`, `platform-tools`)
+- Teléfono con USB OTG + MIDI (probado: Motorola **moto g75 5G**)
 
 ```bash
 export ANDROID_HOME=/home/mjam/Android/Sdk   # ajusta si hace falta
 echo "sdk.dir=$ANDROID_HOME" > local.properties
 ```
 
-## Build
+### Compilar e instalar
 
 ```bash
 ./gradlew assembleDebug
-```
-
-APK: `app/build/outputs/apk/debug/app-debug.apk`
-
-## Conectar el g75 por USB (depuración / instalar)
-
-1. **Ajustes → Acerca del teléfono** → pulsa **Número de compilación** varias veces hasta activar opciones de desarrollador.
-2. **Ajustes → Sistema → Opciones para desarrolladores**:
-   - Activa **Opciones para desarrolladores**
-   - Activa **Depuración USB**
-   - Si aparece, activa también instalación/depuración USB de seguridad (Motorola)
-3. Conecta el móvil al PC con cable de datos USB-C.
-4. En el teléfono acepta **¿Permitir depuración USB?** (marca “siempre desde este ordenador”).
-5. En el PC:
-
-```bash
 adb devices
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Modo avión (permiso especial)
+APK: `app/build/outputs/apk/debug/app-debug.apk`
 
-Android no deja a una app normal cambiar el modo avión en silencio. En un prototipo personal:
+#### Depuración USB (g75)
+
+1. **Ajustes → Acerca del teléfono** → pulsa **Número de compilación** varias veces.
+2. **Opciones para desarrolladores** → **Depuración USB**.
+3. Conecta el cable de datos y acepta el diálogo en el teléfono.
+
+### Modo avión (permiso especial)
 
 ```bash
 adb shell pm grant com.marianoalda.liveperf android.permission.WRITE_SECURE_SETTINGS
 ```
 
-Comportamiento:
+- Al entrar: recuerda el estado; si el avión estaba OFF, lo activa.
+- Al salir: restaura el estado de entrada.
+- Botón en pantalla para conmutarlo a mano.
 
-- Al **entrar**, guarda si el avión estaba ON/OFF; si estaba OFF, lo activa.
-- Al **salir** (cerrar la Activity), restaura el estado de entrada.
-- El botón **Cambiar modo avión** permite conmutarlo a mano mientras la app está abierta.
+Sin el permiso, el resto de la app (MIDI, setlists) sigue funcionando.
 
-Sin el `pm grant`, verás el aviso de permiso y el resto de la app (MIDI) sigue funcionando.
+### Uso en directo
 
-## Uso
+1. Conecta la interfaz MIDI class-compliant al teléfono con **OTG**.
+2. Abre **liveperf** (landscape, pantalla encendida).
+3. **Modo directo** → grupo → setlist → canción.
+4. Instrumentos: **un toque** = Program Change. **Mantener** = editar etiqueta.
+5. **SIGUIENTE** (grande) / **Atrás** (pequeño): **doble toque** (~1,2 s) para evitar pulsaciones accidentales.
+6. Al entrar en una canción se envía el primer instrumento.
 
-- **Modo edición** (padre implícito): **Grupos** → setlist (ya ligada al grupo) → canciones (ya ligadas a la setlist) → instrumentos. Al crear setlist/canción se abre el nivel inferior para completarla de una vez. **Canciones** es un atajo posterior para retocar BPM/tonalidad/instrumentos sin redefinir el árbol.
-- **Importar / exportar JSON** (filesystem del móvil): en edición → **Importar JSON** (reemplaza la biblioteca) o **Exportar JSON** (estado actual). Los instrumentos van por **nombre** (ver `v3sound-grandpianopro.json`). Ejemplo: [`examples/library-example.json`](examples/library-example.json).
-- **Modo directo**: elige grupo → setlist → canción. Instrumentos: un toque (activo más brillante). Siguiente/atrás de canción: **doble toque** (botón grande / pequeño) para evitar fallos en escenario. Al entrar en una canción se envía el primer instrumento.
+Topología validada: teclado → USB Host del V3; Uno → DIN IN del V3. Solo se usan dispositivos MIDI `TYPE_USB` (se ignoran puertos virtuales de apps).
 
-### Formato JSON de importación
+### Descargar repertorio desde GitHub
+
+En el móvil (con Internet):
+
+1. **Modo edición → Descargar desde GitHub**
+2. Elige un JSON de `libraries/` (p. ej. `Repertorio-Blandengues-20261121-a.json`)
+3. Confirma la sobrescritura de la biblioteca local
+4. Queda guardado como `library.json` interno y listo para **Modo directo**
+
+También puedes **Importar JSON** desde el filesystem del teléfono o **Exportar JSON**.
+
+---
+
+## Editor web local (PC)
+
+Sirve para editar la misma jerarquía con más comodidad en el ordenador. Los ficheros quedan en `libraries/` para poder subirlos a GitHub y que el móvil los descargue.
+
+### Arranque
+
+```bash
+python3 webedit/server.py
+# → http://127.0.0.1:8765/
+```
+
+Opciones: `--host 127.0.0.1` (por defecto), `--port 8765`.
+
+### Uso
+
+1. Crea o abre un JSON en la columna **Ficheros** (se guardan en `libraries/`).
+2. Edita **Grupos → setlists → canciones → instrumentos**.
+3. Asigna la **etiqueta propia** (texto del botón en el móvil).
+4. **Guardar** o **Ctrl+S**.
+5. Haz commit/push del JSON en `libraries/` para publicarlo.
+
+Catálogo V3 usado por el editor: `v3sound-grandpianopro.json` en la raíz del repo.
+
+---
+
+## Formato JSON de la biblioteca
 
 ```json
 {
@@ -78,39 +136,36 @@ Sin el `pm grant`, verás el aviso de permiso y el resto de la app (MIDI) sigue 
               "key": "C",
               "instrumentNotes": "Intro piano, estribillo órgano",
               "instruments": [
-                "Grand Piano BÖS 270 Classic",
-                "Organ 776555678 slow"
+                { "name": "Grand Piano BÖS 270 Classic", "label": "Piano" },
+                { "name": "Organ 776555678 slow", "label": "Órgano" }
               ]
             }
           ]
         }
       ]
     }
-  ]
+  ],
+  "instrumentLabels": {
+    "Grand Piano BÖS 270 Classic": "Piano",
+    "Organ 776555678 slow": "Órgano"
+  }
 }
 ```
 
-Catálogo de referencia (nombre ↔ program change): [`v3sound-grandpianopro.json`](v3sound-grandpianopro.json) (también embebido en `app/src/main/assets/`).
+- Los instrumentos se identifican por **nombre** del catálogo V3 (o por número de programa).
+- `label` / `instrumentLabels`: texto del botón en directo.
+- Ejemplo: [`examples/library-example.json`](examples/library-example.json)
+- Catálogo: [`v3sound-grandpianopro.json`](v3sound-grandpianopro.json) (también en `app/src/main/assets/`)
 
-## Editor web local (PC)
+Descarga directa (raw) de un repertorio publicado:
 
-Para editar la biblioteca con más comodidad en el ordenador (misma jerarquía y mismos nombres de instrumento V3):
+`https://raw.githubusercontent.com/marianoalda/liveperf/main/libraries/<nombre>.json`
 
-```bash
-python3 webedit/server.py
-# → http://127.0.0.1:8765/
-```
+---
 
-Los JSON se leen y escriben en [`libraries/`](libraries/) (dentro del repo). Tras editar, puedes hacer commit/push o copiar el fichero al móvil e **Importar JSON** en la app. Atajo: Ctrl+S para guardar.
+## Flujo recomendado
 
-## MIDI en directo
-
-1. Conecta el **M-Audio Uno** (u otra interfaz class-compliant) al g75 con **OTG**.
-2. Abre **liveperf** (landscape, pantalla encendida).
-3. En modo directo, toca un instrumento → Program Change en **canal 1**.
-
-Topología validada con V3: teclado → USB Host del V3; Uno → DIN IN del V3. Sólo se usan dispositivos MIDI `TYPE_USB` (se ignoran puertos virtuales de apps).
-
-## Repo
-
-https://github.com/marianoalda/liveperf
+1. Editar en el **PC** con `webedit` → guardar en `libraries/`.
+2. **Commit y push** a GitHub.
+3. En el **móvil**: Descargar desde GitHub (o importar el fichero).
+4. Actuar en **Modo directo** con MIDI USB.
