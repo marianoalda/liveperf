@@ -13,6 +13,7 @@ Aplicación Android (instalación manual, **no** Play Store) para actuaciones en
 | Documento | Contenido |
 |-----------|-----------|
 | **[doc/manual-usuario.md](doc/manual-usuario.md)** | Cómo usar la app y el editor web en escenario y en casa |
+| **[doc/ejemplo-configuracion.md](doc/ejemplo-configuracion.md)** | Ejemplo de montaje (Keystation + V3 + USB-MIDI + teléfono) |
 | Este README | Visión del proyecto, build, estructura y formato JSON |
 | [`v3sound-grandpianopro.json`](v3sound-grandpianopro.json) | Catálogo V3 (nombre ↔ program change, bank MSB 0) |
 
@@ -34,7 +35,8 @@ Aplicación Android (instalación manual, **no** Play Store) para actuaciones en
 liveperf/
 ├── README.md                 ← este fichero
 ├── doc/
-│   └── manual-usuario.md     ← manual de uso en español
+│   ├── manual-usuario.md     ← manual de uso en español
+│   └── ejemplo-configuracion.md ← ejemplo de montaje MIDI
 ├── app/                      ← código Android (Kotlin / Compose)
 ├── webedit/                  ← servidor Python + UI web
 │   ├── server.py
@@ -115,7 +117,7 @@ Uso paso a paso: [manual §8](doc/manual-usuario.md#8-editor-web-pc).
 3. En el móvil: **Edición → Descargar desde GitHub** (confirma sobrescritura).
 4. **Modo directo** con OTG + interfaz USB-MIDI.
 
-Topología MIDI validada: teclado → USB Host del V3; Uno → DIN IN del V3. La app solo usa dispositivos MIDI `TYPE_USB`.
+Topología MIDI validada: teclado → USB Host del V3; Uno → DIN IN del V3. La app solo usa dispositivos MIDI `TYPE_USB`. Ejemplo detallado (y límites del Thru/USB Host): [doc/ejemplo-configuracion.md](doc/ejemplo-configuracion.md).
 
 ---
 

@@ -72,6 +72,8 @@ Topología validada:
 
 La app solo usa dispositivos MIDI **USB** (ignora puertos virtuales de otras apps).
 
+Ejemplo de montaje completo (Keystation + V3 + interfaz + teléfono) y nota sobre botones del teclado / MIDI Thru: [ejemplo de configuración](ejemplo-configuracion.md).
+
 Pantalla en **horizontal**, permanece encendida mientras la app está abierta.
 
 ---
